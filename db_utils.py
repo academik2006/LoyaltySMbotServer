@@ -1,0 +1,181 @@
+
+import sqlite3
+
+def connect_db():    
+    return sqlite3.connect('users.db')
+
+def execute_query(query, params=None):
+    """
+    Выполняет SQL-запрос и возвращает результат (для SELECT).   
+    :param query: строка с SQL-запросом
+    :param params: кортеж с параметрами для подставления в запрос
+    :return: список кортежей с результатами (если применимо)
+    """
+    
+    conn = connect_db()
+    result = []
+    try:
+        cursor = conn.cursor()
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        
+        # Проверяем, является ли запрос SELECT
+        if query.strip().upper().startswith("SELECT"):
+            result = cursor.fetchall()  # Получаем все записи
+            
+        conn.commit()  # Сохраняем изменения для остальных типов запросов
+    except Exception as e:
+        print(f'Ошибка при выполнении запроса: {e}')
+    finally:
+        close_connection(conn)
+    
+    return result
+
+def add_user_to_database(user_id, username):
+    """
+    Добавляет пользователя в таблицу users.
+    
+    :param user_id: уникальный ID пользователя
+    :param username: имя пользователя
+    """
+    # Формулируем запрос с использованием плейсхолдеров
+    query = "INSERT INTO users (user_id, username) VALUES (?, ?)"
+    
+    # Передаем параметры через tuple
+    execute_query(query, (user_id, username))
+
+def get_character_photo_from_db(user_id):
+    """
+    Возвращает фотографию персонажа из базы данных.
+    
+    :param user_id: ID пользователя
+    :return: bytes объект фотографии или None, если фотография не найдена
+    """
+    query = "SELECT photo FROM characters WHERE user_id=?"
+    result = execute_query(query, (user_id,))
+    
+    if len(result) > 0 and result[0][0]:
+        return result[0][0]
+    else:
+        return None   
+
+def update_or_insert_character_photo(user_id, new_photo_bytes):
+    """
+    Записывает новое фото персонажа в базу данных.
+    Если запись с данным user_id существует, обновляет фото.
+    Иначе создаёт новую запись с указанным фото.
+
+    :param user_id: ID пользователя
+    :param new_photo_bytes: binary data (bytes object) нового фото
+    """
+    query_check = "SELECT COUNT(*) FROM characters WHERE user_id=?"
+    check_result = execute_query(query_check, (user_id,))
+
+    if check_result[0][0] > 0:
+        # Пользователь найден, выполняем обновление
+        update_query = "UPDATE characters SET photo=? WHERE user_id=?"
+        execute_query(update_query, (new_photo_bytes, user_id))
+    else:
+        # Пользователя нет, добавляем новую запись
+        insert_query = "INSERT INTO characters (user_id, photo) VALUES (?, ?)"
+        execute_query(insert_query, (user_id, new_photo_bytes))     
+
+def add_character_to_database(user_id, name, gender, photo_blob, standart_photo_number):
+    query = """
+        INSERT INTO characters (user_id, name, gender, photo, standart_photo_number) VALUES (?,?,?,?,?)
+    """
+    execute_query(query, (user_id, name, gender, photo_blob, standart_photo_number))
+
+def update_character_parameter(user_id, param_name, value_change):
+    """
+    Обновляет числовую характеристику персонажа в базе данных,
+    ограничивая её максимум значением 100.
+    Возвращает True, если нужно отправить сообщение, False в противном случае.
+    """
+    # Запрашиваем текущее значение характеристики
+    select_query = f"SELECT {param_name}, gender FROM characters WHERE user_id=?"
+    current_value_result = execute_query(select_query, (user_id,))
+    if not current_value_result:
+        raise ValueError("Характеристика персонажа не найдена для указанного пользователя.")
+    current_value, gender = current_value_result[0]
+
+    # Вычисляем новое значение
+    new_value = current_value + value_change
+
+    # Если новое значение больше 100, возвращаем признак для отправки сообщения
+    need_send_message = False
+
+    if new_value > 100:
+        new_value = 100        
+
+    if current_value == 100:
+       new_value = 100
+       need_send_message = True    
+
+    # Обновляем базу данных
+    update_query = f"UPDATE characters SET {param_name}=? WHERE user_id=?"
+    execute_query(update_query, (new_value, user_id))
+
+    return need_send_message, gender
+
+def get_current_avatar_param(user_id):
+    """Получает параметры персонажа по user_id"""
+    result = execute_query("SELECT * FROM characters WHERE user_id=?", (user_id,))
+    
+    # Проверяем, есть ли данные
+    if len(result) > 0:
+        character_data = result[0]
+        return character_data
+    else:
+        return None
+
+def delete_character_from_db(char_id):
+    """
+    Удаляет персонажа из таблицы characters по уникальному идентификатору.
+    
+    :param char_id: Уникальный идентификатор персонажа
+    """
+    query = "DELETE FROM characters WHERE character_id=?"
+    execute_query(query, (char_id,))    
+
+def update_character_stats(hunger, fatigue, entertain, money_need, new_total_state, char_id):    
+    query = """
+        UPDATE characters SET hunger=?, fatigue=?, entertainment=?, money_needs=?, total_state=? WHERE character_id=?
+    """    
+    execute_query(query, (hunger, fatigue, entertain, money_need, new_total_state, char_id))
+
+
+def close_connection(conn):    
+    if conn is not None:
+        conn.close()
+
+def create_db():
+    # Таблица users хранит список зарегистрированных пользователей
+    execute_query('''
+        CREATE TABLE IF NOT EXISTS users (
+        user_id INTEGER PRIMARY KEY,
+        username TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        
+    # Таблица characters хранит персонажей и их характеристики
+    execute_query('''
+        CREATE TABLE IF NOT EXISTS characters (
+            character_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            name TEXT,
+            gender TEXT CHECK(gender IN ('male', 'female')),
+            photo BLOB,
+            hunger REAL DEFAULT 100,
+            fatigue REAL DEFAULT 100,
+            entertainment REAL DEFAULT 100,
+            money_needs REAL DEFAULT 100,
+            total_state REAL DEFAULT 100,
+            standart_photo_number REAL DEFAULT -127,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(user_id)
+        )
+        ''')   

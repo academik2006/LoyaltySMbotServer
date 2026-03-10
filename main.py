@@ -47,20 +47,11 @@ async def about_command(message: Message):
 
 # Обработчик команды /start
 @dp.message(Command("start"))
-async def cmd_start(message: types.Message, state: FSMContext):
+async def cmd_start(message: types.Message):
     user_id = message.from_user.id
-    user_name = message.from_user.first_name
-
-    # Клавиатура
-    keyboard = types.InlineKeyboardMarkup()
-    button_conditions = types.InlineKeyboardButton(text="Условия программы лояльности", callback_data='type_about_loyalty')
-    button_join = types.InlineKeyboardButton(text="Вступить", callback_data='type_new_user')
-    keyboard.row(button_conditions, button_join)  
-
-    #await message.answer(f"Привет, {user_name}! Добро пожаловать в программу лояльности Суши Мастер.", reply_markup=keyboard)
-    await message.answer(f"Привет, {user_name}! Добро пожаловать в программу лояльности Суши Мастер.")
-    await bot.send_message(user_id, "Пожалуйста, добавьте свой номер телефона")
-    await state.set_state(UserInfo.phone)
+    user_name = message.from_user.first_name   
+    
+    await message.answer(f"Привет, {user_name}! Добро пожаловать в программу лояльности Суши Мастер.",reply_markup=create_keyboard_for_new_user())   
 
     logger.info(f"Пользователь {user_id} ({user_name}) запустил /start")
 

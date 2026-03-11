@@ -26,8 +26,9 @@ def execute_query(query, params=None):
     :param params: кортеж с параметрами для подставления в запрос
     :return: список кортежей с результатами (если применимо)
     """
-    conn = connect_db()
+    conn = connect_db()    
     result = []
+    error = None
     try:
         cursor = conn.cursor()
         if params:
@@ -42,18 +43,19 @@ def execute_query(query, params=None):
         conn.commit()  # Сохраняем изменения для остальных типов запросов
     except Exception as e:
         print(f'Ошибка при выполнении запроса: {e}')
+        error = f'Ошибка при выполнении запроса: {e}'
     finally:
         close_connection(conn)  # Закрываем соединение вне зависимости от результата
     
-    return result
+    return result,error
 
 
 def add_user_to_database(user_id, username,phone,email,birthday):
         
     # Формулируем запрос с использованием плейсхолдеров
-    query = "INSERT INTO users (user_id, username, phone, email, birthday) VALUES (?, ?, ?, ?, ?)"    
-    # Передаем параметры через tuple
-    execute_query(query, (user_id, username,phone,email,birthday))
+    query = "INSERT INTO users (user_id, username, phone, email, birthday) VALUES (?, ?, ?, ?, ?)"        
+    _, error = execute_query(query, (user_id, username, phone, email, birthday))
+    return error  # Возвращаем ошибку (None, если всё хорошо)
 
 
 def close_connection(conn):    

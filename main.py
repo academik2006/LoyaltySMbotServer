@@ -5,14 +5,18 @@ from aiogram import types
 from aiogram.types import Message
 from aiogram.filters.command import *
 from keyboards import *
+from db_utils import *
 from api_key import API_TOKEN
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.filters.state import StateFilter
+
 
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher()
-router = Router()
-dp.include_router(router)
+storage = MemoryStorage()
+dp = Dispatcher(storage=storage)
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,10 +29,7 @@ logger = logging.getLogger(__name__)
 class UserInfo(StatesGroup):
     phone = State()  # ожидание номера телефона
     email = State()   # ожидание почты
-    birthday = State()   # ожидание даты рождения
-    account = State()   # создание аккаунта
-    bonus = State()   # начисление бонуса при первой регистрации
-    notification = State()   # включение уведомлений
+    birthday = State()   # ожидание даты рождения   
 
 # Обработчик команды /help
 @dp.message(Command("help"))
@@ -55,6 +56,7 @@ async def cmd_start(message: types.Message):
 
     logger.info(f"Пользователь {user_id} ({user_name}) запустил /start")
 
+
 @dp.callback_query(lambda call: call.data == 'type_new_user')
 async def process_callback_type_new_user(callback_query: types.CallbackQuery, state: FSMContext):
     await bot.answer_callback_query(callback_query.id)  # Подтверждение приема события
@@ -65,8 +67,16 @@ async def process_callback_type_new_user(callback_query: types.CallbackQuery, st
     await state.set_state(UserInfo.phone)
     logger.info(f"У пользователя {user_id} ({user_name}) запрошен номер телефона")
 
+@dp.callback_query(lambda call: call.data == 'type_about_loyalty')
+async def process_callback_type_new_user(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)  
+    user_id = callback_query.from_user.id
+    user_name = callback_query.from_user.first_name
+    await bot.send_message(user_id, "Куча каких-то условий и правил")    
+    logger.info(f"Пользователю {user_id} ({user_name}) отправлены условия программы лояльности")
+
 # Ввод имени
-@dp.message(UserInfo.phone)
+@dp.message(StateFilter(UserInfo.phone))
 async def process_phone(message: Message, state: FSMContext):
     user_id = message.from_user.id
     user_name = message.from_user.first_name
@@ -76,22 +86,38 @@ async def process_phone(message: Message, state: FSMContext):
     await state.set_state(UserInfo.email)
     logger.info(f"У Пользователя {user_id} ({user_name}) запрошена почта")
 
-@dp.message(UserInfo.email)
+@dp.message(StateFilter(UserInfo.email))
 async def process_email(message: Message, state: FSMContext):
     user_id = message.from_user.id
     user_name = message.from_user.first_name
     email = message.text
     await state.update_data(email=email)
     await message.answer(f"Принято. Укажите дату Вашего рождения в формате число.месяц.год (например, 27.01.1984)")
-    await state.set_state(UserInfo.account)
+    await state.set_state(UserInfo.birthday)
     logger.info(f"У Пользователя {user_id} ({user_name}) запрошена дата рождения")    
 
-@dp.message(UserInfo.account)
-async def process_account(message: Message, state: FSMContext):    
+@dp.message(StateFilter(UserInfo.birthday))
+async def process_birthday(message: Message, state: FSMContext):
     birthday = message.text
     await state.update_data(birthday=birthday)
-    await message.answer(f"Данные приняты, пользователь создан")    
-    logger.info(f"В базу данных добавлен новый пользователь {state.get_data}")    
+    
+    # Получаем все необходимые данные
+    data = await state.get_data()
+    user_id = message.from_user.id
+    user_name = message.from_user.first_name
+    phone = data.get('phone', '')
+    email = data.get('email', '')
+    birthday = data['birthday']
+
+    # Добавляем пользователя в базу данных
+    try:
+        add_user_to_database(user_id, user_name, phone, email, birthday)
+        await message.answer("Поздравляю! Вы успешно зарегистрированы в нашей программе лояльности.")
+        await state.clear()  # Очищаем состояние после завершения процесса
+    except Exception as e:
+        await message.answer("К сожалению, произошла ошибка при регистрации. Повторите попытку позже.")
+        logger.error(f"Ошибка при добавлении пользователя {user_id}: {e}")
+  
 
 # Обработчик любого присланного текста
 @dp.message(F.text)
@@ -104,8 +130,12 @@ async def echo_message(message: Message):
 
 
 async def main():
-    print("Бот запущен!")
-    await dp.start_polling(bot)
+    logger.info("Создание базы данных")
+    await create_db()
+    logger.info("База данных создана")    
+    logger.info("Бот запущен!")    
+    await dp.start_polling(bot)   
+    
 
 if __name__ == "__main__":
     asyncio.run(main())

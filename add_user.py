@@ -23,28 +23,31 @@ def include_create_new_user_func (dp, bot, logger):
         
         user_id = callback_query.from_user.id
         user_name = callback_query.from_user.first_name
-        await bot.send_message(user_id, "Пожалуйста, добавьте свой номер телефона")
+        await bot.send_message(user_id, "Пожалуйста, введите номер в формате +7*******, содержащий ровно 12 символов.", reply_markup=create_keyboard_for_cancel())
         await state.set_state(UserInfo.phone)
         logger.info(f"У пользователя {user_id} ({user_name}) запрошен номер телефона")
-
-    @dp.callback_query(lambda call: call.data == 'type_about_loyalty')
-    async def process_callback_type_new_user(callback_query: types.CallbackQuery):
-        await bot.answer_callback_query(callback_query.id)  
-        user_id = callback_query.from_user.id
-        user_name = callback_query.from_user.first_name
-        await bot.send_message(user_id, "Куча каких-то условий и правил")    
-        logger.info(f"Пользователю {user_id} ({user_name}) отправлены условия программы лояльности")
-
-    # Ввод имени
+    
+    
     @dp.message(StateFilter(UserInfo.phone))
     async def process_phone(message: Message, state: FSMContext):
         user_id = message.from_user.id
         user_name = message.from_user.first_name
-        phone = message.text
-        await state.update_data(phone=phone)
-        await message.answer(f"Отлично. Укажите ваш email")
-        await state.set_state(UserInfo.email)
-        logger.info(f"У Пользователя {user_id} ({user_name}) запрошена почта")
+        try:
+            phone = message.text
+
+            if len(phone) != 12 or not phone.startswith('+') or not phone[1:].isdigit():
+                raise ValueError("Неверный формат номера! Пожалуйста, введите номер в формате +7*******, содержащий ровно 12 символов.")                               
+            
+            await state.update_data(phone=phone)
+            await message.answer(f"Отлично. Укажите ваш email")
+            await state.set_state(UserInfo.email)
+            logger.info(f"У Пользователя {user_id} ({user_name}) запрошена почта")           
+
+        except ValueError as e:
+            await message.answer(str(e))
+            await state.set_state(UserInfo.phone)  # Возвращаем пользователя на этап ввода телефона
+            return        
+        
 
     @dp.message(StateFilter(UserInfo.email))
     async def process_email(message: Message, state: FSMContext):
@@ -88,3 +91,13 @@ def include_create_new_user_func (dp, bot, logger):
         finally:
             # Всегда сбрасываем состояние после завершения операции
             await state.clear()
+
+    @dp.callback_query(lambda call: call.data == 'type_cancel')
+    async def process_callback_type_cancel(callback_query: types.CallbackQuery, state: FSMContext):
+        await bot.answer_callback_query(callback_query.id)  # Подтверждение приема события
+        
+        user_id = callback_query.from_user.id
+        user_name = callback_query.from_user.first_name
+        await bot.send_message(user_id, "Процесс регистрации нового пользователя отменен", reply_markup=create_keyboard_for_new_user())
+        await state.clear()
+        logger.info(f"Пользователь {user_id} ({user_name}) отменил процесс регистрации")        

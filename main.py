@@ -39,6 +39,14 @@ async def about_command(message: Message):
     await message.answer("Я бот, созданный на aiogram в марте 2026!")
     logger.info(f"Пользователь {user_id} запросил /about")
 
+@dp.callback_query(lambda call: call.data == 'type_about_loyalty')
+async def process_callback_type_new_user(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)  
+    user_id = callback_query.from_user.id
+    user_name = callback_query.from_user.first_name
+    await bot.send_message(user_id, "Куча каких-то условий и правил")    
+    logger.info(f"Пользователю {user_id} ({user_name}) отправлены условия программы лояльности")
+
 # Обработчик команды /start
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):

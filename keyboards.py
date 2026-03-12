@@ -1,5 +1,18 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton, ReplyKeyboardMarkup
 
+
+def create_keyboard_for_new_user():
+
+    button1 = InlineKeyboardButton(text="Условия программы лояльности", callback_data="type_about_loyalty")
+    button2 = InlineKeyboardButton(text="Вступить", callback_data="type_new_user")
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [button1],
+            [button2]
+        ]
+    )    
+    return keyboard
 
 def create_keyboard_for_new_user():
 
@@ -32,3 +45,24 @@ def create_keyboard_for_user_after_registration():
         ]
     )    
     return keyboard
+
+def create_keyboard(buttons, one_time):
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=one_time)    
+    for text in buttons:
+        btn = KeyboardButton(text=text)
+        keyboard.add(btn)
+
+    return keyboard  
+
+
+def create_keyboard_for_cancel():
+    
+    button1 = InlineKeyboardButton(text="Отмена регистрации", callback_data="type_cancel")
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [button1],            
+        ]
+    )    
+    return keyboard
+    

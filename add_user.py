@@ -15,7 +15,7 @@ class UserInfo(StatesGroup):
     birthday = State()   # ожидание даты рождения   
 
 
-def include_create_new_user_func (dp, bot, logger):
+async def include_create_new_user_func (dp, bot, logger):
 
     @dp.callback_query(lambda call: call.data == 'type_new_user')
     async def process_callback_type_new_user(callback_query: types.CallbackQuery, state: FSMContext):
@@ -86,7 +86,7 @@ def include_create_new_user_func (dp, bot, logger):
             logger.error(f"Произошла ошибка при добавлении пользователя {user_name}: {e}")
         else:
             # Всё прошло успешно, сообщаем пользователю
-            await message.answer("Поздравляю! Вы успешно зарегистрированы в нашей программе лояльности.", reply_markup=create_keyboard_for_user_after_registration())
+            await message.answer("Поздравляю! Вы успешно зарегистрированы в нашей программе лояльности.", reply_markup=create_replay_keyboard_for_user_after_registration())
             logger.info(f"Пользователь {user_name} успешно зарегистрирован в программе лояльности.")
         finally:
             # Всегда сбрасываем состояние после завершения операции

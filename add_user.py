@@ -1,3 +1,4 @@
+from datetime import datetime
 from aiogram import types
 from aiogram.types import Message
 from aiogram.filters.command import *
@@ -32,39 +33,57 @@ async def include_create_new_user_func (dp, bot, logger):
     async def process_phone(message: Message, state: FSMContext):
         user_id = message.from_user.id
         user_name = message.from_user.first_name
-        try:
-            phone = message.text
+        phone = message.text.strip()
 
-            if len(phone) != 12 or not phone.startswith('+') or not phone[1:].isdigit():
-                raise ValueError("Неверный формат номера! Пожалуйста, введите номер в формате +7*******, содержащий ровно 12 символов.")                               
-            
-            await state.update_data(phone=phone)
-            await message.answer(f"Отлично. Укажите ваш email")
-            await state.set_state(UserInfo.email)
-            logger.info(f"У Пользователя {user_id} ({user_name}) запрошена почта")           
+        # Проверка формата: +7 и 11 цифр после, итого 12 символов
+        if len(phone) != 12 or not phone.startswith('+7') or not phone[1:].isdigit():
+            await message.answer("Неверный формат номера! Пожалуйста, введите номер в формате +7**********, содержащий ровно 12 символов.")
+            return
 
-        except ValueError as e:
-            await message.answer(str(e))
-            await state.set_state(UserInfo.phone)  # Возвращаем пользователя на этап ввода телефона
-            return        
-        
-
+        # Если номер валиден — сохраняем и продолжаем
+        await state.update_data(phone=phone)
+        await message.answer("Отлично. Укажите ваш email")
+        await state.set_state(UserInfo.email)
+        logger.info(f"У Пользователя {user_id} ({user_name}) запрошена почта")     
+    
     @dp.message(StateFilter(UserInfo.email))
-    async def process_email(message: Message, state: FSMContext):
+    async def process_email(message: types.Message, state: FSMContext):
         user_id = message.from_user.id
         user_name = message.from_user.first_name
-        email = message.text
+        email = message.text.strip()
+
+        # Регулярное выражение для базовой проверки e-mail
+        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+
+        if not re.match(email_regex, email):
+            await message.answer("Неверный формат e-mail. Пожалуйста, введите корректный адрес электронной почты.")
+            return
+
+        # Если e-mail валиден — сохраняем и продолжаем
         await state.update_data(email=email)
         await message.answer(f"Принято. Укажите дату Вашего рождения в формате число.месяц.год (например, 27.01.1984)")
         await state.set_state(UserInfo.birthday)
-        logger.info(f"У Пользователя {user_id} ({user_name}) запрошена дата рождения")    
+        logger.info(f"У Пользователя {user_id} ({user_name}) запрошена дата рождения")        
 
     @dp.message(StateFilter(UserInfo.birthday))
-    async def process_birthday(message: Message, state: FSMContext):
-        birthday = message.text
-        await state.update_data(birthday=birthday)   
-        await add_new_user_to_db(message,state)
-        
+    async def process_birthday(message: types.Message, state: FSMContext):
+        birthday = message.text.strip()
+
+        # Проверка формата: dd.mm.yyyy
+        if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', birthday):
+            await message.answer("Неверный формат даты. Пожалуйста, введите дату в формате: число.месяц.год (например, 27.01.1984)")
+            return
+
+        # Проверка, что дата существует
+        try:
+            datetime.strptime(birthday, '%d.%m.%Y')
+        except ValueError:
+            await message.answer("Введена некорректная дата. Пожалуйста, проверьте и попробуйте ещё раз.")
+            return
+
+        # Если дата валидна — сохраняем и продолжаем
+        await state.update_data(birthday=birthday)
+        await add_new_user_to_db(message, state)
 
     async def add_new_user_to_db(message: Message, state: FSMContext):
         # Получаем все необходимые данные

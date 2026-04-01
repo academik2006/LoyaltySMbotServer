@@ -16,8 +16,7 @@ def create_keyboard_for_new_user():
 
 def create_replay_keyboard_for_user_after_registration():
     buttons = [
-        [KeyboardButton(text="Бонусный баланс"), KeyboardButton(text="История бонусов")],
-        #[KeyboardButton(text="Бонусный баланс 🎁"), KeyboardButton(text="История бонусов 📌")],
+        [KeyboardButton(text="Бонусный баланс 🎁"), KeyboardButton(text="История бонусов 📌")],
         [KeyboardButton(text="Адреса 🏠"), KeyboardButton(text="Заказать доставку 🚗")],        
         [KeyboardButton(text="Условия программы лояльности ✅")],
         [KeyboardButton(text="Персональные предложения 👑")],
@@ -35,10 +34,10 @@ def create_keyboard(buttons, one_time):
     return keyboard  
 
 
-def create_keyboard_for_cancel():
-    
-    button1 = KeyboardButton(text="Отмена регистрации")    
-    reply_markup = ReplyKeyboardMarkup()
-    reply_markup.add(button1)       
-    return reply_markup
+def create_keyboard_for_cancel():    
+        buttons = [
+            [KeyboardButton(text="Отмена")]        
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+        return reply_markup
     

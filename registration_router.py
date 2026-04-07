@@ -7,13 +7,15 @@ from aiogram.fsm.context import FSMContext
 from keyboards import *
 from db_utils import *
 import logging
+from network import *
 
 # Настройка логгера для этого модуля
 logger = logging.getLogger(__name__)
 
 # 1. ОПРЕДЕЛЯЕМ СОСТОЯНИЯ (States)
 class UserInfo(StatesGroup):
-    phone = State()    # Ожидание номера телефона
+    phone = State()    # Ожидание номера телефона   
+    sms = State() #Валидация номера телефона
     email = State()    # Ожидание почты
     birthday = State() # Ожидание даты рождения
 
@@ -44,11 +46,11 @@ async def process_phone_contact(message: types.Message, state: FSMContext):
     logger.info(f"Пользователь {message.from_user.id} прислал контакт. Нормализованный номер: {phone_number}")
 
     await state.update_data(phone=phone_number)
-    await state.set_state(UserInfo.email)
+    #await state.set_state(UserInfo.email)
 
     await message.answer(
-        "✅ Номер принят из вашего профиля. Теперь, пожалуйста, укажите ваш email.",
-        reply_markup=types.ReplyKeyboardRemove()
+        f"✅ Номер {phone_number} успешно загружен из вашего профиля. Необходимо пройти процедуру подтверждения номера номера",
+        reply_markup=create_keyboard_for_ask_sms()
     )
 
 @registration_router.message(StateFilter(UserInfo.phone),F.text)
@@ -62,12 +64,48 @@ async def process_phone_text(message: types.Message, state: FSMContext):
         return  # Пользователь остается в состоянии UserInfo.phone
 
     await state.update_data(phone=phone_number)
-    await state.set_state(UserInfo.email)
-
+    
     await message.answer(
-        "✅ Номер принят. Теперь, пожалуйста, укажите ваш email.",
-        reply_markup=types.ReplyKeyboardRemove()
+        f"✅ Номер {phone_number}  принят. Необходимо пройти процедуру подтверждения номера телефона",
+        reply_markup=create_keyboard_for_ask_sms()
     )
+
+@registration_router.message(StateFilter(UserInfo.sms),F.text)
+async def process_send_validate_sms_text(message: types.Message, state: FSMContext):
+    """Обработчик для случая, когда пользователь отправил SMS боту"""
+    user_id = message.from_user.id
+    user_name = message.from_user.first_name
+    code = message.text.strip()
+    logger.info(f"Пользователь {message.from_user.id} ввел sms: {code}")
+
+    data = await state.get_data()
+    phone = data.get('phone', '')
+    
+    if len(code) != 4:
+        await message.answer("❌ Неверный формат SMS. Пожалуйста, введите код из 4 цифр из SMS - сообщения", reply_markup=create_keyboard_for_cancel())
+        return 
+
+    await state.update_data(sms=code)
+    api_result = await validate_sms_code (phone,code)     
+    logger.info(f"Отправили SMS для потверждения номера для {phone}") 
+
+    if api_result.get("success"):
+        # Если код 200, идем дальше (запрашиваем полученный код)
+        await state.set_state(UserInfo.email)        
+        await message.answer(            
+            "✅ Код подтверждения принят. Напишите ваш e-mail",
+            reply_markup=create_keyboard_for_cancel()
+        )
+    else:
+        # Если код НЕ 200, показываем ошибку и предлагаем повторить или отменить
+        error_code = api_result.get("status", "неизвестный")
+        error_text = api_result.get("error", "Произошла ошибка на сервере.")        
+        await message.answer(            
+            f"❌ Ошибка {error_code}: {error_text}\n\nПожалуйста, попробуйте еще раз или отмените действие.",
+            reply_markup=create_keyboard_for_cancel()
+        )    
+        return   
+
 
 @registration_router.message(StateFilter(UserInfo.email), F.text)
 async def process_email(message: types.Message, state: FSMContext):
@@ -192,6 +230,36 @@ async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger:
         )   
                 
         logger.info(f"Пользователь выбрать передать контакт из Телеграма {user_id} ({user_name})")          
+
+
+    @dispatcher.callback_query(lambda call: call.data == 'type_send_sms')
+    async def process_callback_type_send_sms(callback_query: types.CallbackQuery, state: FSMContext):        
+        await bot.answer_callback_query(callback_query.id)        
+        user_id = callback_query.from_user.id
+        user_name = callback_query.from_user.first_name
+        data = await state.get_data()
+        phone_number = data.get('phone', '')
+        api_result = await send_verification_code(phone_number)    
+
+        logger.info(f"Пользователь {user_id} ({user_name} запросил SMS для потверждения номера для {phone_number}") 
+
+        if api_result.get("success"):
+        # Если код 200, идем дальше (запрашиваем полученный код)
+            await state.set_state(UserInfo.sms)        
+            await bot.send_message(
+            user_id,
+            "✅ Код подтверждения отправлен на ваш телефон. Напишите его в чат после получения",
+            reply_markup=types.ReplyKeyboardRemove() # Убираем предыдущую клавиатуру
+        )
+        else:
+            # Если код НЕ 200, показываем ошибку и предлагаем повторить или отменить
+            error_code = api_result.get("status", "неизвестный")
+            error_text = api_result.get("error", "Произошла ошибка на сервере.")                            
+            await bot.send_message(
+                user_id,
+                f"❌ Ошибка {error_code}: {error_text}\n\nПожалуйста, попробуйте еще раз или отмените действие.",
+                reply_markup=create_keyboard_for_ask_sms()
+            )             
     
     @dispatcher.callback_query(lambda call: call.data == 'type_cancel')
     async def process_callback_type_cancel(callback_query: types.CallbackQuery, state: FSMContext):
@@ -209,5 +277,7 @@ async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger:
         
         await state.clear()
         logger.info(f"Регистрация отменена пользователем {user_id} ({user_name})")   
+
+        
 
    

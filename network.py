@@ -1,28 +1,27 @@
 import aiohttp
 import json
 
-API_URL = "https://venus-api-customers.snet.su/v1/sendCode/partner"
+
 PARTNER_ID = "f0bab507-02b4-4199-aaec-da6d0348e516"
 HEADERS = {
     "x-partner-id": PARTNER_ID,
     "Content-Type": "application/json"
 }
+retail_network_id = "A79C5050-1EE7-11EB-9B6E-05B5FC40DF2A"
+SOURCE = "PARTNER"
 
-async def send_verification_code(phone: str, retail_network_id: str):
-    """
-    Асинхронно отправляет код подтверждения через API.
-    """
+async def send_verification_code(phone: str):
+
+    url = "https://venus-api-customers.snet.su/v1/sendCode/partner"
+    
     payload = {
         "RetailNetworkId": retail_network_id,
-        "Recipient": phone
+        "Recipient": phone,        
     }
 
-    async with aiohttp.ClientSession(headers=HEADERS) as session:
-        async with session.post(API_URL, json=payload) as response:
-            return await response.text(), response.status
+    return await safe_request(url, payload)    
 
-
-async def validate_sms_code(retail_network_id: str, recipient: str, code: int, source: str) -> dict:
+async def validate_sms_code(phone: str, code: int) -> dict:
     """
     Проверяет код из SMS, отправленный пользователю.
     
@@ -40,19 +39,13 @@ async def validate_sms_code(retail_network_id: str, recipient: str, code: int, s
     # Формирование тела запроса
     payload = {
         "RetailNetworkId": retail_network_id,
-        "Recipient": recipient,
+        "Recipient": phone,
         "Code": code,
-        "Source": source
+        "Source": SOURCE
     }
-    
-    # Выполнение асинхронного POST-запроса
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=payload) as response:
-            # Обработка ответа
-            if response.status == 200:
-                return await response.json()
-            else:
-                raise Exception(f"Ошибка проверки кода ({response.status}): {await response.text()}")        
+
+    return await safe_request(url, payload) 
+         
 
 async def get_user_info(user_id: str) -> dict:
     """Асинхронно получает информацию о пользователе по user_id."""
@@ -60,7 +53,7 @@ async def get_user_info(user_id: str) -> dict:
     url = f"{base_url}{user_id}"
 
     try:
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers=HEADERS) as session:
             async with session.get(url) as response:
                 if response.status == 200:
                     return await response.json()
@@ -68,4 +61,40 @@ async def get_user_info(user_id: str) -> dict:
                     raise Exception(f"Ошибка запроса: {response.status}")
     except Exception as e:
         print(f"Произошла ошибка: {e}")
-        return None        
+        return None   
+
+
+async def safe_request(url: str, payload: dict) -> dict:
+    """
+    Выполняет POST-запрос и возвращает результат в удобном формате.
+    Возвращает словарь с ключами 'success', 'status', 'data'.
+    """
+    async with aiohttp.ClientSession(headers=HEADERS) as session:
+        async with session.post(url, json=payload) as response:
+            # 1. Проверяем статус
+            if response.status == 200:
+                # Если статус 200, пытаемся распарсить JSON
+                try:
+                    data = await response.json()
+                    return {
+                        "success": True,
+                        "status": response.status,
+                        "data": data
+                    }
+                except aiohttp.ContentTypeError:
+                    # Если это не JSON (например, просто текст или пустой ответ)
+                    text = await response.text()
+                    return {
+                        "success": True,
+                        "status": response.status,
+                        "data": text or "Пустой ответ (200 OK)"
+                    }
+            else:
+                # 2. Если статус НЕ 200, возвращаем текст ошибки
+                # Иногда при ошибках (4xx, 5xx) сервер присылает текст с описанием
+                error_text = await response.text()
+                return {
+                    "success": False,
+                    "status": response.status,
+                    "error": error_text or f"Ошибка {response.status} без описания"
+                }

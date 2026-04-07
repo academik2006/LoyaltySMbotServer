@@ -39,6 +39,18 @@ def create_keyboard_for_ask_phone():
     )    
     return keyboard
 
+def create_keyboard_for_ask_sms():
+    button1 = InlineKeyboardButton(text="Запросить код авторизации", callback_data="type_send_sms")
+    button2 = InlineKeyboardButton(text="Отмена", callback_data="type_cancel")
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [button1],
+            [button2],            
+        ]
+    )    
+    return keyboard
+
 def create_contact_keyboard():
     """
     Создает клавиатуру с кнопкой для запроса контакта.
@@ -48,7 +60,8 @@ def create_contact_keyboard():
     # Передаем список со списком кнопок в параметр keyboard
     keyboard = ReplyKeyboardMarkup(
         keyboard=[[contact_button]], # Кнопка обернута в список, чтобы создать один ряд
-        resize_keyboard=True
+        resize_keyboard=True,
+        one_time_keyboard=True
     )
     
     return keyboard

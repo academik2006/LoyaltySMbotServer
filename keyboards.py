@@ -25,6 +25,30 @@ def create_replay_keyboard_for_user_after_registration():
     reply_markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
     return reply_markup
 
+def create_keyboard_for_ask_phone():
+    button1 = InlineKeyboardButton(text="Написать в чат боту", callback_data="type_send_phone_manual")
+    button2 = InlineKeyboardButton(text="Передать понтакт из профиля Telegram", callback_data="type_send_contact_from_telegram")
+    button3 = InlineKeyboardButton(text="Отмена", callback_data="type_cancel")
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [button1],
+            [button2],
+            [button3]
+        ]
+    )    
+    return keyboard
+
+def create_contact_keyboard():
+    """
+    Создает клавиатуру с кнопкой для запроса контакта.
+    """
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    contact_button = KeyboardButton(text="Отправить мой номер", request_contact=True)
+    keyboard.add(contact_button)
+    return keyboard
+    
+
 def create_keyboard(buttons, one_time):
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=one_time)    
     for text in buttons:
@@ -35,9 +59,12 @@ def create_keyboard(buttons, one_time):
 
 
 def create_keyboard_for_cancel():    
-        buttons = [
-            [KeyboardButton(text="Отмена")]        
+    button = InlineKeyboardButton(text="Отмена", callback_data="type_cancel")
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [button],            
         ]
-        reply_markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-        return reply_markup
+    )    
+    return keyboard
     

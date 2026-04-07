@@ -5,11 +5,12 @@ from aiogram import types
 from aiogram.types import Message
 from aiogram.filters.command import *
 from aiogram.types import InputFile
-from add_user import *
 from keyboards import *
 from db_utils import *
+from registration_router import *
 from api_key import API_TOKEN
 from aiogram.fsm.storage.memory import MemoryStorage
+from registration_router import registration_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,12 +24,11 @@ logger = logging.getLogger(__name__)
 storage = MemoryStorage()
 bot = Bot(token=API_TOKEN)
 dispatcher = Dispatcher(storage=storage)
-router = Router()
-dispatcher.include_router(router)
+main_router = Router()
+dispatcher.include_router(main_router)
+dispatcher.include_router(registration_router)
 
-# Основной роутер обработчиков
-
-@router.message(F.text.in_(["Бонусный баланс 🎁", "История бонусов 📌", "Адреса 🏠",
+@main_router.message(F.text.in_(["Бонусный баланс 🎁", "История бонусов 📌", "Адреса 🏠",
                              "Заказать доставку 🚗", "Задать вопрос 💬",
                              "Условия программы лояльности ✅", "Персональные предложения 👑"]))
 
@@ -111,7 +111,7 @@ async def add_user_on_start(message):
         )
 
 async def main():      
-    await create_db()    
+    await create_db()        
     await include_create_new_user_func (dispatcher, bot, logger)    
     await dispatcher.start_polling(bot) 
     logger.info("Бот запущен!")       

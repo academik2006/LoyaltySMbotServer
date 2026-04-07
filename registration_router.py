@@ -17,11 +17,7 @@ class UserInfo(StatesGroup):
     email = State()    # Ожидание почты
     birthday = State() # Ожидание даты рождения
 
-# 2. СОЗДАЕМ ОТДЕЛЬНЫЙ РОУТЕР ДЛЯ СЦЕНАРИЯ РЕГИСТРАЦИИ
 registration_router = Router(name="registration_router")
-
-# --- Все обработчики, относящиеся к регистрации, будут здесь ---
-# Они не нуждаются в StateFilter, так как будут подключены к основному роутеру с этим условием.
 
 @registration_router.message(F.content_types(types.ContentType.CONTACT))
 async def process_phone_contact(message: types.Message, state: FSMContext):
@@ -37,15 +33,14 @@ async def process_phone_contact(message: types.Message, state: FSMContext):
         reply_markup=types.ReplyKeyboardRemove()
     )
 
-@registration_router.message(F.text)
+@registration_router.message(StateFilter(UserInfo.phone),F.text)
 async def process_phone_text(message: types.Message, state: FSMContext):
     """Обработчик для случая, когда пользователь ВВЁЛ ТЕКСТ вручную."""
     phone_number = message.text.strip()
     logger.info(f"Пользователь {message.from_user.id} ввел номер вручную: {phone_number}")
 
-    # --- Валидация введенного текста ---
     if len(phone_number) != 12 or not phone_number.startswith('+7') or not phone_number[1:].isdigit():
-        await message.answer("❌ Неверный формат номера. Пожалуйста, введите его заново или воспользуйтесь кнопкой.")
+        await message.answer("❌ Неверный формат номера. Пожалуйста, введите номер заново.", reply_markup=create_keyboard_for_cancel())
         return  # Пользователь остается в состоянии UserInfo.phone
 
     await state.update_data(phone=phone_number)
@@ -56,7 +51,7 @@ async def process_phone_text(message: types.Message, state: FSMContext):
         reply_markup=types.ReplyKeyboardRemove()
     )
 
-@registration_router.message(F.text)
+@registration_router.message(StateFilter(UserInfo.email), F.text)
 async def process_email(message: types.Message, state: FSMContext):
     """Обработчик ввода email."""
     user_id = message.from_user.id
@@ -66,7 +61,7 @@ async def process_email(message: types.Message, state: FSMContext):
     email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
 
     if not re.match(email_regex, email):
-        await message.answer("❌ Неверный формат e-mail. Пожалуйста, введите корректный адрес.")
+        await message.answer("❌ Неверный формат e-mail. Пожалуйста, введите корректный адрес.", reply_markup=create_keyboard_for_cancel())
         return
 
     await state.update_data(email=email)
@@ -76,21 +71,21 @@ async def process_email(message: types.Message, state: FSMContext):
     await state.set_state(UserInfo.birthday)
     logger.info(f"У пользователя {user_id} запрошена дата рождения")
 
-@registration_router.message(F.text)
+@registration_router.message(StateFilter(UserInfo.birthday),F.text)
 async def process_birthday(message: types.Message, state: FSMContext):
     """Обработчик ввода даты рождения."""
     birthday = message.text.strip()
 
     # Проверка формата: dd.mm.yyyy
     if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', birthday):
-        await message.answer("❌ Неверный формат даты. Используйте ДД.ММ.ГГГГ (например, 27.01.1984).")
+        await message.answer("❌ Неверный формат даты. Используйте ДД.ММ.ГГГГ (например, 27.01.1984).", reply_markup=create_keyboard_for_cancel())
         return
 
     # Проверка существования даты
     try:
         datetime.strptime(birthday, '%d.%m.%Y')
     except ValueError:
-        await message.answer("❌ Такой даты не существует. Пожалуйста, проверьте и введите заново.")
+        await message.answer("❌ Такой даты не существует. Пожалуйста, проверьте и введите заново.", reply_markup=create_keyboard_for_cancel())
         return
 
     await state.update_data(birthday=birthday)
@@ -130,18 +125,12 @@ async def add_new_user_to_db(message: types.Message, state: FSMContext):
         await state.clear()
 
 
-# --- ФУНКЦИЯ ПОДКЛЮЧЕНИЯ К ДИСПЕТЧЕРУ ---
-async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger: logging.Logger):
-    """
-    Эта функция подключает все обработчики регистрации к основному диспетчеру.
-    """
-        
-    # --- ОБРАБОТЧИКИ НАЧАЛА И ОТМЕНЫ ---
+async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger: logging.Logger): 
     
-    @dispatcher.callback_query(lambda call: call.data == 'type_new_user')    
-    @dispatcher.include_router(registration_router, StateFilter(UserInfo.phone))
+    
+    @dispatcher.callback_query(lambda call: call.data == 'type_new_user')        
     async def process_callback_type_new_user(callback_query: types.CallbackQuery, state: FSMContext):
-        """Обработчик кнопки 'Стать новым пользователем'."""
+    
         await bot.answer_callback_query(callback_query.id)
         
         user_id = callback_query.from_user.id
@@ -149,12 +138,35 @@ async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger:
         
         await bot.send_message(
             user_id,
-            "Пожалуйста, введите номер в формате +7******* или передайте его с помощью кнопки.",
+            "Для регистрации в программе лояльности необходимо передать и потвердить номер телефона. Выберите удобный способ",
             reply_markup=create_keyboard_for_ask_phone()
-        )
-        
-        await state.set_state(UserInfo.phone)
+        )                
         logger.info(f"Начало регистрации для пользователя {user_id} ({user_name})")
+
+    @dispatcher.callback_query(lambda call: call.data == 'type_send_phone_manual')
+    async def process_callback_type_cancel(callback_query: types.CallbackQuery, state: FSMContext):        
+        await bot.answer_callback_query(callback_query.id)        
+        user_id = callback_query.from_user.id
+        user_name = callback_query.from_user.first_name
+        
+        await bot.send_message(
+            user_id,
+            "Пришлите номер телефона в формате +7...., не более 12 цифр ",            
+        )
+        await state.set_state(UserInfo.phone)
+        logger.info(f"Пользователь выбрать передать телефон в ручном формате {user_id} ({user_name})")      
+
+    @dispatcher.callback_query(lambda call: call.data == 'type_send_contact_from_telegram')
+    async def process_callback_type_cancel(callback_query: types.CallbackQuery):        
+        await bot.answer_callback_query(callback_query.id)        
+        user_id = callback_query.from_user.id
+        user_name = callback_query.from_user.first_name
+        await bot.answer(
+        "Пожалуйста, нажмите кнопку ниже, чтобы отправить ваш номер.",
+        reply_markup=create_contact_keyboard()
+        )   
+                
+        logger.info(f"Пользователь выбрать передать контакт из Телеграма {user_id} ({user_name})")          
     
     @dispatcher.callback_query(lambda call: call.data == 'type_cancel')
     async def process_callback_type_cancel(callback_query: types.CallbackQuery, state: FSMContext):

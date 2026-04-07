@@ -19,11 +19,29 @@ class UserInfo(StatesGroup):
 
 registration_router = Router(name="registration_router")
 
-@registration_router.message(F.content_types(types.ContentType.CONTACT))
+@registration_router.message(F.content_type == types.ContentType.CONTACT)
 async def process_phone_contact(message: types.Message, state: FSMContext):
     """Обработчик для случая, когда пользователь прислал КОНТАКТ."""
-    phone_number = message.contact.phone_number
-    logger.info(f"Пользователь {message.from_user.id} прислал контакт: {phone_number}")
+    
+    # Получаем номер из объекта Contact
+    raw_phone = message.contact.phone_number
+
+    # Логика нормализации:
+    # 1. Если номер начинается с '8', заменяем на '+7'.
+    # 2. Если номер начинается с '7' (без плюса), добавляем '+'.
+    # 3. В остальных случаях (например, уже +7 или +1) оставляем как есть.
+    
+    if raw_phone.startswith('8'):
+        # Случай: 8983...
+        phone_number = '+7' + raw_phone[1:]
+    elif raw_phone.startswith('7'):
+        # Ваш случай: 7983... (добавляем плюс)
+        phone_number = '+' + raw_phone
+    else:
+        # Для международных номеров или других форматов
+        phone_number = raw_phone 
+
+    logger.info(f"Пользователь {message.from_user.id} прислал контакт. Нормализованный номер: {phone_number}")
 
     await state.update_data(phone=phone_number)
     await state.set_state(UserInfo.email)
@@ -161,9 +179,16 @@ async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger:
         await bot.answer_callback_query(callback_query.id)        
         user_id = callback_query.from_user.id
         user_name = callback_query.from_user.first_name
-        await bot.answer(
-        "Пожалуйста, нажмите кнопку ниже, чтобы отправить ваш номер.",
-        reply_markup=create_contact_keyboard()
+        await bot.send_message(
+            user_id,
+            "Пожалуйста, нажмите кнопку 'Отправить мой номер', чтобы передать ваш номер автоматически",
+            reply_markup=create_contact_keyboard()
+        )   
+
+        await bot.send_message(
+            user_id,
+            "Если передать номер не удалось(не задан в профиле Telegram), нажмите кнопку 'Отмена'",
+            reply_markup=create_keyboard_for_cancel()
         )   
                 
         logger.info(f"Пользователь выбрать передать контакт из Телеграма {user_id} ({user_name})")          

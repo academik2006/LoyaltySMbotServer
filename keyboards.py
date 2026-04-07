@@ -43,11 +43,15 @@ def create_contact_keyboard():
     """
     Создает клавиатуру с кнопкой для запроса контакта.
     """
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
     contact_button = KeyboardButton(text="Отправить мой номер", request_contact=True)
-    keyboard.add(contact_button)
-    return keyboard
     
+    # Передаем список со списком кнопок в параметр keyboard
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[[contact_button]], # Кнопка обернута в список, чтобы создать один ряд
+        resize_keyboard=True
+    )
+    
+    return keyboard
 
 def create_keyboard(buttons, one_time):
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2, one_time_keyboard=one_time)    

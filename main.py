@@ -4,7 +4,6 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram import types
 from aiogram.types import Message
 from aiogram.filters.command import *
-from aiogram.types import InputFile
 from keyboards import *
 from db_utils import *
 from registration_router import *

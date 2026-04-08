@@ -32,34 +32,16 @@ async def validate_sms_code(phone: str, code: int) -> dict:
         "Source": "PARTNER"
     }
 
-    return await safe_request_without_headers(url, payload) 
+    return await safe_request(url, payload) 
          
 
-async def get_user_info(user_id: str) -> dict:
-    """Асинхронно получает информацию о пользователе по user_id."""
+async def get_user_info(idloyaty_id: str) -> dict:
+    
     base_url = "https://venus-api-customers.snet.su/v1/get/"
-    url = f"{base_url}{user_id}"
-
-    try:
-        async with aiohttp.ClientSession(headers=HEADERS) as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    raise Exception(f"Ошибка запроса: {response.status}")
-    except Exception as e:
-        print(f"Произошла ошибка: {e}")
-        return None   
-
-
-async def safe_request(url: str, payload: dict) -> dict:
-    """
-    Выполняет POST-запрос и возвращает результат в удобном формате.
-    Возвращает словарь с ключами 'success', 'status', 'data'.
-    """
+    url = f"{base_url}{idloyaty_id}"
+    
     async with aiohttp.ClientSession(headers=HEADERS) as session:
-        async with session.post(url, json=payload) as response:
-            # 1. Проверяем статус
+        async with session.get(url) as response:
             if response.status == 200:
                 # Если статус 200, пытаемся распарсить JSON
                 try:
@@ -86,12 +68,16 @@ async def safe_request(url: str, payload: dict) -> dict:
                     "status": response.status,
                     "error": error_text or f"Ошибка {response.status} без описания"
                 }
-async def safe_request_without_headers(url: str, payload: dict) -> dict:
+
+                
+
+
+async def safe_request(url: str, payload: dict) -> dict:
     """
     Выполняет POST-запрос и возвращает результат в удобном формате.
     Возвращает словарь с ключами 'success', 'status', 'data'.
     """
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=HEADERS) as session:
         async with session.post(url, json=payload) as response:
             # 1. Проверяем статус
             if response.status == 200:

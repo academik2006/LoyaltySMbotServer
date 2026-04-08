@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class UserInfo(StatesGroup):
     phone = State()    # Ожидание номера телефона   
     sms = State() #Валидация номера телефона
+    idloyaty = State() #Валидация номера телефона
     email = State()    # Ожидание почты
     birthday = State() # Ожидание даты рождения
 
@@ -73,33 +74,41 @@ async def process_phone_text(message: types.Message, state: FSMContext):
 @registration_router.message(StateFilter(UserInfo.sms),F.text)
 async def process_send_validate_sms_text(message: types.Message, state: FSMContext):
     """Обработчик для случая, когда пользователь отправил SMS боту"""
-    user_id = message.from_user.id
-    user_name = message.from_user.first_name
-    code = message.text.strip()
+    
+    try:
+        code = message.text.strip()
+        code_int = int(code)
+    except ValueError:
+        print("Строка не может быть преобразована в целое число.")
+
+    
     logger.info(f"Пользователь {message.from_user.id} ввел sms: {code}")
 
     data = await state.get_data()
     phone = data.get('phone', '')
     
-    if len(code) != 4:
-        await message.answer("❌ Неверный формат SMS. Пожалуйста, введите код из 4 цифр из SMS - сообщения", reply_markup=create_keyboard_for_cancel())
+    if len(code) != 4 or not code.isdigit():
+        await message.answer("❌ Неверный формат SMS. Пожалуйста, введите код из 4 цифр из SMS-сообщения", reply_markup=create_keyboard_for_cancel())
         return 
 
-    await state.update_data(sms=code)
-    api_result = await validate_sms_code (phone,code)     
-    logger.info(f"Отправили SMS для потверждения номера для {phone}") 
+    await state.update_data(sms=code_int)
+    api_result = await validate_sms_code (phone,code_int)         
 
-    if api_result.get("success"):
+    if api_result.get("success"):        
         # Если код 200, идем дальше (запрашиваем полученный код)
-        await state.set_state(UserInfo.email)        
+        idloyaty=api_result["data"]["id"]
+        logger.info(f"Отправили SMS для потверждения номера для {phone}, результат успешно, сохранен idloyaty {idloyaty}") 
+        await state.update_data(idloyaty=idloyaty)        
         await message.answer(            
             "✅ Код подтверждения принят. Напишите ваш e-mail",
             reply_markup=create_keyboard_for_cancel()
         )
+        await state.set_state(UserInfo.email)        
     else:
         # Если код НЕ 200, показываем ошибку и предлагаем повторить или отменить
         error_code = api_result.get("status", "неизвестный")
         error_text = api_result.get("error", "Произошла ошибка на сервере.")        
+        logger.info(f"Отправили SMS для потверждения номера для {phone}, результат ошибка код {error_code}, причина {error_text}") 
         await message.answer(            
             f"❌ Ошибка {error_code}: {error_text}\n\nПожалуйста, попробуйте еще раз или отмените действие.",
             reply_markup=create_keyboard_for_cancel()
@@ -158,11 +167,12 @@ async def add_new_user_to_db(message: types.Message, state: FSMContext):
     user_name = message.from_user.first_name
     
     phone = data.get('phone', '')
+    idloyaty = data.get('idloyaty', '')
     email = data.get('email', '')
     birthday = data.get('birthday', '')
     
     try:
-        error = add_user_to_database(user_id, user_name, phone, email, birthday)
+        error = add_user_to_database(user_id, user_name, phone, idloyaty, email, birthday)
         if error:
             raise ValueError(error)
             

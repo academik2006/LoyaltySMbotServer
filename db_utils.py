@@ -8,6 +8,7 @@ async def create_db():
             user_id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT,
             phone TEXT,
+            idloyaty TEXT,
             email TEXT,
             birthday TEXT,
             bonus BIGINT DEFAULT 0,
@@ -50,11 +51,11 @@ def execute_query(query, params=None):
     return result,error
 
 
-def add_user_to_database(user_id, username,phone,email,birthday):
+def add_user_to_database(user_id, username,phone,idloyaty,email,birthday):
         
     # Формулируем запрос с использованием плейсхолдеров
-    query = "INSERT INTO users (user_id, username, phone, email, birthday) VALUES (?, ?, ?, ?, ?)"        
-    _, error = execute_query(query, (user_id, username, phone, email, birthday))
+    query = "INSERT INTO users (user_id, username, phone, idloyaty,email, birthday) VALUES (?, ?, ?,?, ?, ?)"        
+    _, error = execute_query(query, (user_id, username, phone, idloyaty,email, birthday))
     return error  # Возвращаем ошибку (None, если всё хорошо)
 
 

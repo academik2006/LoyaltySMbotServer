@@ -1,13 +1,10 @@
 import aiohttp
-import json
-
 
 PARTNER_ID = "f0bab507-02b4-4199-aaec-da6d0348e516"
 HEADERS = {
-    "x-partner-id": PARTNER_ID,
-    #"Content-Type": "application/json"
+    "x-partner-id": PARTNER_ID,    
 }
-retail_network_id = "A79C5050-1EE7-11EB-9B6E-05B5FC40DF2A"
+RETAIL_NETWORK_ID = "A79C5050-1EE7-11EB-9B6E-05B5FC40DF2A"
 SOURCE = "PARTNER"
 
 async def send_verification_code(phone: str):
@@ -15,7 +12,7 @@ async def send_verification_code(phone: str):
     url = "https://venus-api-customers.snet.su/v1/sendCode/partner"
     
     payload = {
-        "RetailNetworkId": retail_network_id,
+        "RetailNetworkId": RETAIL_NETWORK_ID,
         "Recipient": phone,        
     }
 
@@ -26,7 +23,7 @@ async def validate_sms_code(phone: str, code: int) -> dict:
     url = "https://venus-api-customers.snet.su/v1/validateCode"
     # Формирование тела запроса
     payload = {
-        "RetailNetworkId": retail_network_id,
+        "RetailNetworkId": RETAIL_NETWORK_ID,
         "Recipient": phone,
         "Code": code,
         "Source": "PARTNER"

@@ -5,7 +5,8 @@ async def create_db():
     # Исправляем структуру таблицы и удаляем лишнюю закрывающую скобку
     execute_query('''
         CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,      
+            user_id INTEGER,
             username TEXT,
             phone TEXT,
             idloyaty TEXT,

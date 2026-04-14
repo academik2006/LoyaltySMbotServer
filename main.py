@@ -7,6 +7,7 @@ from aiogram.filters.command import *
 from aiogram.types import InputFile
 from keyboards import *
 from db_utils import *
+from messages import WELCOME_TEXT
 from registration_router import *
 from api_key import API_TOKEN
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -126,7 +127,8 @@ async def add_user_on_start(message):
 
     if not data:
         logger.info(f"Новый пользователь: {user_id} ({user_name})")        
-        await message.answer(f"Привет, {user_name}! Добро пожаловать в программу лояльности Суши Мастер.", reply_markup=create_keyboard_for_new_user())                                                                 
+        welcome_text = WELCOME_TEXT.format(username=user_name)
+        await message.answer(welcome_text, reply_markup=create_keyboard_for_new_user())                                                                 
     else:
         logger.info(f"Пользователь уже зарегистрирован: {user_id} ({user_name})")
         await message.answer(

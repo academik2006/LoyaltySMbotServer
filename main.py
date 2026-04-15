@@ -1,4 +1,3 @@
-import logging
 import asyncio
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram import types
@@ -6,13 +5,13 @@ from aiogram.types import Message
 from aiogram.filters.command import *
 from keyboards import *
 from db_utils import *
+from main_keyboard_click import *
 from messages import WELCOME_TEXT
 from registration_router import *
 from api_keys import API_TOKEN
 from aiogram.fsm.storage.memory import MemoryStorage
 from registration_router import registration_router
 from aiohttp import web
-
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,6 +35,7 @@ dispatcher = Dispatcher(storage=storage)
 main_router = Router()
 dispatcher.include_router(main_router)
 dispatcher.include_router(registration_router)
+
 
 
 @main_router.message(F.text.in_(["Бонусный баланс 🎁", "История бонусов 📌", "Адреса 🏠",
@@ -72,62 +72,6 @@ async def get_db_size (message:Message):
         await message.answer(f"⚠️ Произошла ошибка при запросе к базе данных: {e}")
         logger.error(f"Ошибка при запросе статистики: {e}")         
 
-async def get_bonus_balance_history_for_user(message, user_id):
-    try:
-        phone, error = get_phone_by_user_id(user_id)
-        if error:
-            raise ValueError(error)       
-        api_result = await get_history_bonus_for_user(phone)         
-        logger.info(f"Результат запроса истории начисления бонусов {api_result}") 
-
-        if api_result.get("success"):        
-            #bonus=api_result['data']['bonusCount']
-
-            if bonus is None:
-                bonus=0                                   
-            await message.answer(f"Пришла история начисления бонусов{api_result}")
-                        
-        else:
-            error_code = api_result.get("status", "неизвестный")
-            error_text = api_result.get("error", "Произошла ошибка на сервере.")        
-            logger.info(f"При запросе истории начисления бонусных балов произошла ошибка код {error_code}, причина {error_text}") 
-            await message.answer(f"❌ Ошибка {error_code}: {error_text}\n\nПожалуйста, попробуйте еще раз позже")                            
-    except ValueError as e:
-        await message.answer(f"⚠️ Произошла ошибка при запросе к базе данных: {e}")
-        logger.error(f"Ошибка при запросе к базе данных {user_id}: {e}")         
-                  
-
-async def get_bonus_balance_for_user(message, user_id):
-    try:
-        idloyaty, error = get_idloyaty_by_user_id(user_id)
-        if error:
-            raise ValueError(error)       
-        api_result = await get_user_info(idloyaty)         
-        logger.info(f"Результат запроса бонусного баланса {api_result}") 
-
-        if api_result.get("success"):        
-            bonus=api_result['data']['bonusCount']
-            if bonus is None:
-                bonus=0                                   
-            await message.answer(f"Баланс бонусных баллов {bonus} бонусов")
-                        
-        else:
-            error_code = api_result.get("status", "неизвестный")
-            error_text = api_result.get("error", "Произошла ошибка на сервере.")        
-            logger.info(f"При запросе баланса бонусных балов произошла ошибка код {error_code}, причина {error_text}") 
-            await message.answer(f"❌ Ошибка {error_code}: {error_text}\n\nПожалуйста, попробуйте еще раз позже")                            
-    except ValueError as e:
-        await message.answer(f"⚠️ Произошла ошибка при запросе к базе данных: {e}")
-        logger.error(f"Ошибка при запросе к базе данных {user_id}: {e}")
-
-
-# Обработчик команды /help
-@dispatcher.message(Command("help"))
-async def help_command(message: Message):
-    user_id = message.from_user.id
-
-    await message.answer("Я умею:\n/start — поздороваться\n/help — показать это сообщение")
-    logger.info(f"Пользователь {user_id} запросил /help")
 
 @dispatcher.message(Command("stats"))
 async def show_stats(message: Message):
@@ -141,12 +85,6 @@ async def show_stats(message: Message):
         return    
     await get_db_size(message)    
 
-@dispatcher.message(Command("about"))
-async def about_command(message: Message):
-    user_id = message.from_user.id
-
-    await message.answer("Я бот, созданный на aiogram в марте 2026!")
-    logger.info(f"Пользователь {user_id} запросил /about")
 
 @dispatcher.callback_query(lambda call: call.data == 'type_about_loyalty')
 async def process_callback_type_new_user(callback_query: types.CallbackQuery):

@@ -19,13 +19,19 @@ async def send_verification_code(phone: str):
 
     return await safe_request(url, payload)    
 
-async def get_history_bonus_for_user(phone: str):
+async def get_history_bonus_for_user(user_uuid: str):
 
     url = "https://jetti-api-sailplay2.apps-web.net/api/sailplay-http"
-    
+
     payload = {
-        "RetailNetworkId": RETAIL_NETWORK_ID,
-        "Recipient": phone,        
+        "method": "user.infoByUUID",
+        "args": {
+            "uuid": user_uuid,            
+            "retailNetworkId": RETAIL_NETWORK_ID,
+            "options": {
+                "history": True
+            }
+        }
     }
 
     return await safe_request(url, payload)    

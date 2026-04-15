@@ -36,8 +36,6 @@ main_router = Router()
 dispatcher.include_router(main_router)
 dispatcher.include_router(registration_router)
 
-
-
 @main_router.message(F.text.in_(["Бонусный баланс 🎁", "История бонусов 📌", "Адреса 🏠",
                              "Заказать доставку 🚗", "Задать вопрос 💬",
                              "Условия программы лояльности ✅", "Персональные предложения 👑"]))
@@ -61,19 +59,7 @@ async def handle_main_keyboard_button_click(message: Message):
                 case "Персональные предложения 👑":
                     await message.answer("Специальные предложения для вас...")
 
-async def get_db_size (message:Message):
-    try:
-        size,error = get_total_users_count()         
-        if error:
-            raise ValueError(error)
-        await message.answer(f"В базе данных {size} пользователей")                       
-        
-    except ValueError as e:
-        await message.answer(f"⚠️ Произошла ошибка при запросе к базе данных: {e}")
-        logger.error(f"Ошибка при запросе статистики: {e}")         
-
-
-@dispatcher.message(Command("stats"))
+@dispatcher.message(Command("yaposhka"))
 async def show_stats(message: Message):
     """
     Показывает общую статистику заказов (только для админа)
@@ -84,6 +70,17 @@ async def show_stats(message: Message):
         await get_db_size(message)    
         return    
     await get_db_size(message)    
+
+async def get_db_size (message:Message):
+    try:
+        size,error = get_total_users_count()         
+        if error:
+            raise ValueError(error)
+        await message.answer(f"В базе данных {size} пользователей")                       
+        
+    except ValueError as e:
+        await message.answer(f"⚠️ Произошла ошибка при запросе к базе данных: {e}")
+        logger.error(f"Ошибка при запросе статистики: {e}")         
 
 
 @dispatcher.callback_query(lambda call: call.data == 'type_about_loyalty')

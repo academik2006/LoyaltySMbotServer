@@ -1,15 +1,27 @@
 import aiohttp
 
-PARTNER_ID = "f0bab507-02b4-4199-aaec-da6d0348e516"
+from api_keys import PARTNER_ID, RETAIL_NETWORK_ID
+
+
 HEADERS = {
     "x-partner-id": PARTNER_ID,    
 }
-RETAIL_NETWORK_ID = "A79C5050-1EE7-11EB-9B6E-05B5FC40DF2A"
 SOURCE = "PARTNER"
 
 async def send_verification_code(phone: str):
 
     url = "https://venus-api-customers.snet.su/v1/sendCode/partner"
+    
+    payload = {
+        "RetailNetworkId": RETAIL_NETWORK_ID,
+        "Recipient": phone,        
+    }
+
+    return await safe_request(url, payload)    
+
+async def get_history_bonus_for_user(phone: str):
+
+    url = "https://jetti-api-sailplay2.apps-web.net/api/sailplay-http"
     
     payload = {
         "RetailNetworkId": RETAIL_NETWORK_ID,

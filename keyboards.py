@@ -19,7 +19,7 @@ def create_replay_keyboard_for_user_after_registration():
         [KeyboardButton(text="Бонусный баланс 🎁"), KeyboardButton(text="История бонусов 📌")],
         [KeyboardButton(text="Адреса 🏠"), KeyboardButton(text="Заказать доставку 🚗")],        
         [KeyboardButton(text="Условия программы лояльности ✅")],
-        [KeyboardButton(text="Персональные предложения 👑")],
+        #[KeyboardButton(text="Персональные предложения 👑")],
         [KeyboardButton(text="Задать вопрос 💬")], 
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)

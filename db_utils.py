@@ -60,6 +60,15 @@ def get_idloyaty_by_user_id(user_id):
         return result[0][0], None  # Возвращаем значение idloyaty
     return None, None  # Пользователь не найден
 
+def get_phone_by_user_id(user_id):
+    query = "SELECT phone FROM users WHERE user_id = ?"
+    result, error = execute_query(query, (user_id,))
+    if error:
+        return None, error
+    if result:
+        return result[0][0], None  # Возвращаем значение phone
+    return None, None  # Пользователь не найден
+
 def add_user_to_database(user_id, username,phone,idloyaty,email,birthday):
         
     # Формулируем запрос с использованием плейсхолдеров

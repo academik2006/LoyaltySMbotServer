@@ -55,12 +55,22 @@ async def handle_main_keyboard_button_click(message: Message):
                     await message.answer("Оформление заказа...")
                 case "Задать вопрос 💬":
                     await message.answer("Задавайте ваш вопрос...")
-                case "Условия программы лояльности ✅":
-                    user_id = message.from_user.id
+                case "Условия программы лояльности ✅":                    
                     user_name = message.from_user.first_name 
                     await send_loyalty_text(user_id,user_name)                    
                 case "Персональные предложения 👑":
                     await message.answer("Специальные предложения для вас...")
+
+async def get_db_size (message:Message):
+    try:
+        size,error = get_total_users_count()         
+        if error:
+            raise ValueError(error)
+        await message.answer(f"В базе данных {size} пользователей")                       
+        
+    except ValueError as e:
+        await message.answer(f"⚠️ Произошла ошибка при запросе к базе данных: {e}")
+        logger.error(f"Ошибка при запросе статистики: {e}")         
 
 async def get_bonus_balance_history_for_user(message, user_id):
     try:
@@ -84,7 +94,8 @@ async def get_bonus_balance_history_for_user(message, user_id):
             await message.answer(f"❌ Ошибка {error_code}: {error_text}\n\nПожалуйста, попробуйте еще раз позже")                            
     except ValueError as e:
         await message.answer(f"⚠️ Произошла ошибка при запросе к базе данных: {e}")
-        logger.error(f"Ошибка при запросе к базе данных {user_id}: {e}")                    
+        logger.error(f"Ошибка при запросе к базе данных {user_id}: {e}")         
+                  
 
 async def get_bonus_balance_for_user(message, user_id):
     try:
@@ -126,8 +137,9 @@ async def show_stats(message: Message):
     user_id = message.from_user.id
     if user_id != ADMIN_ID:
         await message.reply("Ты не админ!")
+        await get_db_size(message)    
         return    
-    await message.reply(f"Всего пользователей в базе: 0")    
+    await get_db_size(message)    
 
 @dispatcher.message(Command("about"))
 async def about_command(message: Message):

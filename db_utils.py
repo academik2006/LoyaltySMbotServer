@@ -1,8 +1,7 @@
 
 import sqlite3
 
-async def create_db():
-    # Исправляем структуру таблицы и удаляем лишнюю закрывающую скобку
+async def create_db():    
     execute_query('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,      
@@ -75,6 +74,23 @@ def add_user_to_database(user_id, username,phone,idloyaty,email,birthday):
     query = "INSERT INTO users (user_id, username, phone, idloyaty,email, birthday) VALUES (?, ?, ?,?, ?, ?)"        
     _, error = execute_query(query, (user_id, username, phone, idloyaty,email, birthday))
     return error  # Возвращаем ошибку (None, если всё хорошо)
+
+def get_total_users_count():
+    """
+    Возвращает общее количество записей в таблице users.
+    :return: (количество, ошибка). Если всё хорошо, количество будет целым числом, а ошибка - None.
+    """
+    # Используем COUNT(*) для эффективного подсчета строк
+    query = "SELECT COUNT(*) FROM users;"
+    
+    # Выполняем запрос. execute_query вернет список с одним кортежем: [(count,)]
+    result, error = execute_query(query)
+    
+    if error:
+        return 0, error
+    
+    # result[0][0] достает число из результата [(count,)]
+    return result[0][0], None
 
 
 def close_connection(conn):    

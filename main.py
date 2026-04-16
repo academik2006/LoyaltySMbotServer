@@ -50,7 +50,7 @@ async def handle_main_keyboard_button_click(message: Message):
                 case "Заказать доставку 🚗":
                     await message.answer("Для оформления заказа перейдите на наш сайт:", reply_markup=create_keyboard_make_order())                    
                 case "Задать вопрос 💬":
-                    await message.answer("Задавайте ваш вопрос...")
+                    await message.answer("Нажмите на кнопку ниже, чтобы перейти к боту поддержки и задать вопрос", reply_markup=create_keyboard_give_question())
                 case "Условия программы лояльности ✅":                    
                     user_name = message.from_user.first_name 
                     await send_loyalty_text(user_id,user_name)                    

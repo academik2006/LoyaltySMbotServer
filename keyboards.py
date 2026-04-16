@@ -71,6 +71,16 @@ def create_keyboard_make_order():
     )    
     return keyboard
 
+def create_keyboard_give_question():
+    button = InlineKeyboardButton(text="Задать вопрос 💬", url="https://t.me/SushiMasterRU_bot")
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [button],            
+        ]
+    )    
+    return keyboard
+
 def create_contact_keyboard():
     """
     Создает клавиатуру с кнопкой для запроса контакта.

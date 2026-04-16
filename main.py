@@ -6,9 +6,9 @@ from aiogram.filters.command import *
 from keyboards import *
 from db_utils import *
 from main_keyboard_click import *
-from messages import WELCOME_TEXT
+from messages import ADRESS_TEXT, LOYATLY_TEXT, WELCOME_TEXT
 from registration_router import *
-from api_keys import API_TOKEN
+from api_keys import ADMIN_IDS, API_TOKEN
 from aiogram.fsm.storage.memory import MemoryStorage
 from registration_router import registration_router
 from aiohttp import web
@@ -26,8 +26,6 @@ logger = logging.getLogger(__name__)
 #WEBHOOK_PATH = "/webhook"
 #WEBAPP_HOST = "0.0.0.0"
 #WEBAPP_PORT = 8080
-
-ADMIN_ID = 123456789
 
 storage = MemoryStorage()
 bot = Bot(token=API_TOKEN)
@@ -48,9 +46,9 @@ async def handle_main_keyboard_button_click(message: Message):
                 case "История бонусов 📌":
                     await get_bonus_balance_history_for_user(message, user_id)                             
                 case "Адреса 🏠":
-                    await message.answer("Список адресов доставки...")
+                    await message.answer(ADRESS_TEXT)
                 case "Заказать доставку 🚗":
-                    await message.answer("Оформление заказа...")
+                    await message.answer("Для оформления заказа перейдите на наш сайт:", reply_markup=create_keyboard_make_order())                    
                 case "Задать вопрос 💬":
                     await message.answer("Задавайте ваш вопрос...")
                 case "Условия программы лояльности ✅":                    
@@ -59,17 +57,36 @@ async def handle_main_keyboard_button_click(message: Message):
                 case "Персональные предложения 👑":
                     await message.answer("Специальные предложения для вас...")
 
+@main_router.message(F.text.in_(["Рассылки 📢", "Статистика базы данных 📊", "Запрос данных пользователя 🔎",
+                             "Скрыть панель администрирования ❌"]))
+async def handle_admin_keyboard_button_click(message: Message):    
+        user_id = message.from_user.id    
+        match message.text:
+                case "Рассылки 📢":
+                    await message.answer("Нажатка кнопка меню рассылок")                    
+                case "Статистика базы данных 📊":
+                    await get_db_size(message)
+                case "Запрос данных пользователя 🔎":
+                    await message.answer("Запрос данных пользователя...")
+                case "Скрыть панель администрирования ❌":
+                    await add_user_on_start(message)                  
+                
+
 @dispatcher.message(Command("yaposhka"))
 async def show_stats(message: Message):
     """
     Показывает общую статистику заказов (только для админа)
     """
     user_id = message.from_user.id
-    if user_id != ADMIN_ID:
-        await message.reply("Ты не админ!")
-        await get_db_size(message)    
-        return    
-    await get_db_size(message)    
+    user_name = message.from_user.first_name 
+    if user_id not in ADMIN_IDS:
+        await message.reply("Ваш аккаунт не обладает правами админа")        
+        logger.error(f"Запрос на администрирование от пользователя без прав администратора: {user_id}")         
+        return
+    await message.answer(
+            f"Привет, {user_name}! Ниже представлено меню администрирования",
+            reply_markup=create_replay_keyboard_for_admins()
+        )    
 
 async def get_db_size (message:Message):
     try:
@@ -90,9 +107,8 @@ async def process_callback_type_new_user(callback_query: types.CallbackQuery):
     user_name = callback_query.from_user.first_name
     await send_loyalty_text(user_id,user_name)    
 
-async def send_loyalty_text (user_id, user_name):
-    loyality_text = "Куча каких-то условий и правил"
-    await bot.send_message(user_id, loyality_text)    
+async def send_loyalty_text (user_id, user_name):    
+    await bot.send_message(user_id, LOYATLY_TEXT)    
     logger.info(f"Пользователю {user_id} ({user_name}) отправлены условия программы лояльности")
 
 # Обработчик команды /start

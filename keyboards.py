@@ -25,6 +25,16 @@ def create_replay_keyboard_for_user_after_registration():
     reply_markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
     return reply_markup
 
+def create_replay_keyboard_for_admins():
+    buttons = [
+        [KeyboardButton(text="Рассылки 📢")],
+        [KeyboardButton(text="Статистика базы данных 📊")],
+        [KeyboardButton(text="Запрос данных пользователя 🔎")],
+        [KeyboardButton(text="Скрыть панель администрирования ❌")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+    return reply_markup
+
 def create_keyboard_for_ask_phone():
     button1 = InlineKeyboardButton(text="Написать в чат боту", callback_data="type_send_phone_manual")
     button2 = InlineKeyboardButton(text="Передать понтакт из профиля Telegram", callback_data="type_send_contact_from_telegram")
@@ -47,6 +57,16 @@ def create_keyboard_for_ask_sms():
         inline_keyboard=[
             [button1],
             [button2],            
+        ]
+    )    
+    return keyboard
+
+def create_keyboard_make_order():
+    button = InlineKeyboardButton(text="Перейти на сайт sushi-master.ru", url="https://sushi-master.ru")
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [button],            
         ]
     )    
     return keyboard

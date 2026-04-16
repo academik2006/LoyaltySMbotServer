@@ -1,6 +1,5 @@
 from asyncio.log import logger
 from datetime import datetime
-
 from db_utils import *
 from network import *
 
@@ -14,7 +13,7 @@ async def get_bonus_balance_history_for_user(message, user_id):
             raise ValueError(error)        
         
         # Отправляем запрос на получение истории        
-        
+        #idloyaty = "060100CE-3059-4668-82B9-18F8D9E93837"        
         api_result = await get_history_bonus_for_user(idloyaty)        
         logger.info(f"Результат запроса истории начисления бонусов {api_result}")
         
@@ -55,13 +54,13 @@ def format_last_operations(response: dict) -> str:
         
         # Определяем тип операции
         operation_type = {
-            'PURCHASE': 'Покупка',
-            'MANUAL': 'Ручное начисление',
+            'PURCHASE': 'Покупка ',
+            'MANUAL': 'Ручное     ',
             'EXPIRATION': 'Списание'
         }.get(op['action'], '')
         
         # Формируем строку
-        lines.append(f"{format_date(op['action_date'])}  {operation_type:<20}  {amount:+}")
+        lines.append(f"{format_date(op['action_date'])}  {operation_type}  {amount:+}")
             
     # Возвращаем полную строку
     return "\n".join(lines)   

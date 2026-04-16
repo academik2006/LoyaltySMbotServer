@@ -229,13 +229,13 @@ async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger:
         user_name = callback_query.from_user.first_name
         await bot.send_message(
             user_id,
-            "Пожалуйста, нажмите кнопку 'Отправить мой номер', чтобы передать ваш номер автоматически",
+            "Пожалуйста, нажмите кнопку \"Отправить мой номер\", чтобы передать ваш номер автоматически",
             reply_markup=create_contact_keyboard()
         )   
 
         await bot.send_message(
             user_id,
-            "Если передать номер не удалось(не задан в профиле Telegram), нажмите кнопку 'Отмена'",
+            "Если передать номер не удалось (не задан в профиле Telegram), нажмите кнопку \"Отмена\"",
             reply_markup=create_keyboard_for_cancel()
         )   
                 

@@ -37,7 +37,7 @@ def create_replay_keyboard_for_admins():
 
 def create_keyboard_for_ask_phone():
     button1 = InlineKeyboardButton(text="Написать в чат боту", callback_data="type_send_phone_manual")
-    button2 = InlineKeyboardButton(text="Передать понтакт из профиля Telegram", callback_data="type_send_contact_from_telegram")
+    button2 = InlineKeyboardButton(text="Передать контакт из профиля Telegram", callback_data="type_send_contact_from_telegram")
     button3 = InlineKeyboardButton(text="Отмена", callback_data="type_cancel")
 
     keyboard = InlineKeyboardMarkup(

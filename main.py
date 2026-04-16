@@ -1,7 +1,8 @@
 import asyncio
+import os
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram import types
-from aiogram.types import Message
+from aiogram.types import InputFile, Message
 from aiogram.filters.command import *
 from keyboards import *
 from db_utils import *
@@ -12,6 +13,8 @@ from api_keys import ADMIN_IDS, API_TOKEN
 from aiogram.fsm.storage.memory import MemoryStorage
 from registration_router import registration_router
 from aiohttp import web
+
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -134,8 +137,14 @@ async def add_user_on_start(message):
 
     if not data:
         logger.info(f"Новый пользователь: {user_id} ({user_name})")        
-        welcome_text = WELCOME_TEXT.format(username=user_name)
-        await message.answer(welcome_text, reply_markup=create_keyboard_for_new_user())                                                                 
+        welcome_text = WELCOME_TEXT.format(username=user_name)        
+        photo_path = 'welcome_pic.jpg'
+        await message.answer_photo(
+            photo=types.FSInputFile(path=photo_path), 
+            caption=welcome_text,
+            parse_mode="HTML",
+            reply_markup=create_keyboard_for_new_user())
+        
     else:
         logger.info(f"Пользователь уже зарегистрирован: {user_id} ({user_name})")
         await message.answer(

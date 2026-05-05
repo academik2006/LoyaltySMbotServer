@@ -3,8 +3,6 @@ from datetime import datetime
 from db_utils import *
 from network import *
 
-
-
 async def get_bonus_balance_history_for_user(message, user_id):
     try:
         # Получаем ID лояльности по user_id
@@ -15,8 +13,7 @@ async def get_bonus_balance_history_for_user(message, user_id):
         # Отправляем запрос на получение истории        
         #idloyaty = "060100CE-3059-4668-82B9-18F8D9E93837"        
         api_result = await get_history_bonus_for_user(idloyaty)        
-        logger.info(f"Результат запроса истории начисления бонусов {api_result}")
-        
+               
         # Если успешный ответ
         if api_result.get("success"):
             # Формируем красивое сообщение с историей операций
@@ -72,8 +69,7 @@ async def get_bonus_balance_for_user(message, user_id):
         idloyaty, error = get_idloyaty_by_user_id(user_id)
         if error:
             raise ValueError(error)       
-        api_result = await get_user_info(idloyaty)         
-        logger.info(f"Результат запроса бонусного баланса {api_result}") 
+        api_result = await get_user_info(idloyaty)                 
 
         if api_result.get("success"):        
             bonus=api_result['data']['bonusCount']

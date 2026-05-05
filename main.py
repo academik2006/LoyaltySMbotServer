@@ -4,17 +4,17 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram import types
 from aiogram.types import InputFile, Message
 from aiogram.filters.command import *
+from dotenv import load_dotenv
 from keyboards import *
 from db_utils import *
 from main_keyboard_click import *
 from messages import ADRESS_TEXT, LOYATLY_TEXT, WELCOME_TEXT
 from registration_router import *
-from api_keys import ADMIN_IDS, API_TOKEN
 from aiogram.fsm.storage.memory import MemoryStorage
 from registration_router import registration_router
 from aiohttp import web
 
-
+load_dotenv()  # Загружаем переменные из .env  
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 #WEBAPP_PORT = 8080
 
 storage = MemoryStorage()
-bot = Bot(token=API_TOKEN)
+bot = Bot(token=os.getenv("API_TOKEN"))
 dispatcher = Dispatcher(storage=storage)
 main_router = Router()
 dispatcher.include_router(main_router)
@@ -82,7 +82,7 @@ async def show_stats(message: Message):
     """
     user_id = message.from_user.id
     user_name = message.from_user.first_name 
-    if user_id not in ADMIN_IDS:
+    if user_id not in os.getenv("ADMIN_IDS"):
         await message.reply("Ваш аккаунт не обладает правами админа")        
         logger.error(f"Запрос на администрирование от пользователя без прав администратора: {user_id}")         
         return

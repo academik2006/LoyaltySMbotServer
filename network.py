@@ -1,10 +1,14 @@
 import aiohttp
+from dotenv import load_dotenv
+import os
 
-from api_keys import PARTNER_ID, RETAIL_NETWORK_ID
+load_dotenv()  # Загружаем переменные из .env 
 
+partner_id = os.getenv("PARTNER_ID")
+retail_network_id = os.getenv("RETAIL_NETWORK_ID")
 
 HEADERS = {
-    "x-partner-id": PARTNER_ID,    
+    "x-partner-id": partner_id,    
 }
 SOURCE = "PARTNER"
 
@@ -13,7 +17,7 @@ async def send_verification_code(phone: str):
     url = "https://venus-api-customers.snet.su/v1/sendCode/partner"
     
     payload = {
-        "RetailNetworkId": RETAIL_NETWORK_ID,
+        "RetailNetworkId": retail_network_id,
         "Recipient": phone,        
     }
 
@@ -27,7 +31,7 @@ async def get_history_bonus_for_user(user_uuid: str):
         "method": "user.infoByUUID",
         "args": {
             "uuid": user_uuid,            
-            "retailNetworkId": RETAIL_NETWORK_ID,
+            "retailNetworkId": retail_network_id,
             "options": {
                 "history": True
             }
@@ -41,7 +45,7 @@ async def validate_sms_code(phone: str, code: int) -> dict:
     url = "https://venus-api-customers.snet.su/v1/validateCode"
     # Формирование тела запроса
     payload = {
-        "RetailNetworkId": RETAIL_NETWORK_ID,
+        "RetailNetworkId": retail_network_id,
         "Recipient": phone,
         "Code": code,
         "Source": "PARTNER"

@@ -35,6 +35,12 @@ def create_backup() -> str | None:
         logger.error(f"Не удалось создать бэкап {e}") 
     return None
 
+async def daily_backup_job(bot):   
+    logger.info("Запуск задачи ежедневного бэкапа...")
+    backup_path = create_backup()
+    
+    if backup_path:        
+        await send_backup_to_admins(backup_path, bot)
 
 async def send_backup_to_admins(backup_path: str, bot):
     """
@@ -51,29 +57,13 @@ async def send_backup_to_admins(backup_path: str, bot):
         logger.info (f"Бэкап успешно отправлен разработчику")
     except Exception as e:
         logger.info(f"Не удалось отправить бэкап разработчику: {e}")
-
-async def daily_backup_job(bot):
-    """
-    Основная задача планировщика.
-    Важно использовать dp.async_create_task(), чтобы избежать блокировки.
-    """
-    logger.info("Запуск задачи ежедневного бэкапа...")
-    backup_path = create_backup()
-    
-    if backup_path:        
-        await send_backup_to_admins(backup_path, bot)
         
-
-
 async def start_scheduler_backup(bot):
     """
     Настраивает и запускает планировщик.
     """
-    scheduler = AsyncIOScheduler()
-    
-    # Запускаем задачу каждый день в 12:00 ночи.
-    # Вы можете изменить время на удобное вам.    
+    scheduler = AsyncIOScheduler()       
     scheduler.add_job(daily_backup_job, trigger=CronTrigger(hour=13, minute=57), kwargs={"bot": bot})        
     scheduler.start()
-    logger.info("Планировщик задач запущен. Бэкап будет создаваться ежедневно в 03:00.")
+    logger.info("Планировщик задач запущен. Бэкап будет создаваться ежедневно в 13:57")
 

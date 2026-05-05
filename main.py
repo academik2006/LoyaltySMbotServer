@@ -13,8 +13,10 @@ from registration_router import *
 from aiogram.fsm.storage.memory import MemoryStorage
 from registration_router import registration_router
 from aiohttp import web
+from backup import *
 
 load_dotenv()  # Загружаем переменные из .env  
+# Создаем папку для бэкапов, если её нет
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +39,7 @@ main_router = Router()
 dispatcher.include_router(main_router)
 dispatcher.include_router(registration_router)
 
+
 @main_router.message(F.text.in_(["Бонусный баланс 🎁", "История бонусов 📌", "Адреса 🏠",
                              "Заказать доставку 🚗", "Задать вопрос 💬",
                              "Условия программы лояльности ✅", "Персональные предложения 👑"]))
@@ -45,7 +48,7 @@ async def handle_main_keyboard_button_click(message: Message):
         user_id = message.from_user.id    
         match message.text:
                 case "Бонусный баланс 🎁":
-                    await get_bonus_balance_for_user(message, user_id)                             
+                    await get_bonus_balance_for_user(message, user_id)                                                 
                 case "История бонусов 📌":
                     await get_bonus_balance_history_for_user(message, user_id)                             
                 case "Адреса 🏠":
@@ -80,9 +83,16 @@ async def show_stats(message: Message):
     """
     Показывает общую статистику заказов (только для админа)
     """
+    admin_ids_str = os.getenv("ADMIN_IDS")
+
+    if admin_ids_str:
+        ADMIN_IDS = [int(id_str) for id_str in admin_ids_str.split(',')]
+    else:
+        ADMIN_IDS = [] 
+
     user_id = message.from_user.id
     user_name = message.from_user.first_name 
-    if user_id not in os.getenv("ADMIN_IDS"):
+    if user_id not in ADMIN_IDS:
         await message.reply("Ваш аккаунт не обладает правами админа")        
         logger.error(f"Запрос на администрирование от пользователя без прав администратора: {user_id}")         
         return
@@ -152,9 +162,11 @@ async def add_user_on_start(message):
             reply_markup=create_replay_keyboard_for_user_after_registration()
         )
 
-async def main():      
+async def main():          
     await create_db()        
     await include_create_new_user_func (dispatcher, bot, logger)    
+    await create_backup_dir()
+    await start_scheduler_backup(bot)
     await dispatcher.start_polling(bot) 
     logger.info("Бот запущен!")       
 

@@ -171,3 +171,4 @@ cython_debug/
 .pypirc
 api_keys.py
 users.db
+backups

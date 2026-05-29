@@ -1,10 +1,12 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton, ReplyKeyboardMarkup
 
+#from registration_router import CHANNEL_USERNAME
+
 
 def create_keyboard_for_new_user():
 
     button1 = InlineKeyboardButton(text="Условия программы лояльности", callback_data="type_about_loyalty")
-    button2 = InlineKeyboardButton(text="Вступить", callback_data="type_new_user")
+    button2 = InlineKeyboardButton(text="Зарегистрироваться", callback_data="type_new_user")
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -104,6 +106,19 @@ def create_keyboard(buttons, one_time):
 
     return keyboard  
 
+def create_keyboard_for_new_user_ask_suggestion():
+
+    button1 = InlineKeyboardButton(text="Согласен", callback_data="type_new_user_send_suggestion")
+    button2 = InlineKeyboardButton(text="Отмена", callback_data="type_cancel")
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [button1],
+            [button2]
+        ]
+    )    
+    return keyboard
+
 
 def create_keyboard_for_cancel():    
     button = InlineKeyboardButton(text="Отмена", callback_data="type_cancel")
@@ -114,4 +129,29 @@ def create_keyboard_for_cancel():
         ]
     )    
     return keyboard
+
+def create_keyboard_start_welcome_prize():
+
+    button1 = InlineKeyboardButton(text="Проверить подписку", callback_data="type_start_welcome_prize")    
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [button1]            
+        ]
+    )    
+    return keyboard
+
+def create_keyboard_go_sushi_master_chanel():
+     
+    #button1 = InlineKeyboardButton(text="Подписаться на канал Суши Мастер", url=f"https://t.me/{CHANNEL_USERNAME}")    
+    button2 = InlineKeyboardButton(text="Проверить подписку", callback_data="type_start_welcome_prize")    
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            #[button1]
+            [button2]            
+        ]
+    )    
+    return keyboard   
+
     

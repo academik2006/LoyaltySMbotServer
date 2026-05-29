@@ -4,16 +4,18 @@ from aiogram import F, Bot, Dispatcher, Router, types
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from keyboards import *
+from aiogram.exceptions import TelegramNotFound
 from db_utils import *
 import logging
+from keyboards import *
+from messages import LAVA_PRIZE, POLICY_TEXT, WELCOME_PRIZE_TEXT
 from network import *
 
 # Настройка логгера для этого модуля
 logger = logging.getLogger(__name__)
 
 # 1. ОПРЕДЕЛЯЕМ СОСТОЯНИЯ (States)
-class UserInfo(StatesGroup):
+class UserInfo(StatesGroup):    
     phone = State()    # Ожидание номера телефона   
     sms = State() #Валидация номера телефона
     idloyaty = State() #Валидация номера телефона
@@ -21,6 +23,8 @@ class UserInfo(StatesGroup):
     birthday = State() # Ожидание даты рождения
 
 registration_router = Router(name="registration_router")
+
+#CHANNEL_USERNAME = "-1001265323457"
 
 @registration_router.message(F.content_type == types.ContentType.CONTACT)
 async def process_phone_contact(message: types.Message, state: FSMContext):
@@ -158,7 +162,6 @@ async def process_birthday(message: types.Message, state: FSMContext):
     # Переходим к финальной функции сохранения в БД
     await add_new_user_to_db(message, state)
 
-
 async def add_new_user_to_db(message: types.Message, state: FSMContext):
     """Функция сохранения данных пользователя в базу."""
     data = await state.get_data()
@@ -175,6 +178,11 @@ async def add_new_user_to_db(message: types.Message, state: FSMContext):
         error = add_user_to_database(user_id, user_name, phone, idloyaty, email, birthday)
         if error:
             raise ValueError(error)
+        
+        await message.answer(
+            WELCOME_PRIZE_TEXT,
+            #reply_markup=create_keyboard_start_welcome_prize()
+        )
             
         await message.answer(
             "🎉 Поздравляю! Вы успешно зарегистрированы!",
@@ -200,6 +208,22 @@ async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger:
         await bot.answer_callback_query(callback_query.id)
         
         user_id = callback_query.from_user.id
+        user_name = callback_query.from_user.first_name        
+        
+        await bot.send_message(
+           user_id,
+           POLICY_TEXT,
+           parse_mode="HTML", 
+           reply_markup=create_keyboard_for_new_user_ask_suggestion() 
+        )
+        logger.info(f"Запросили согласие на участие в программе {user_id} ({user_name})")
+
+    @dispatcher.callback_query(lambda call: call.data == 'type_new_user_send_suggestion')        
+    async def process_callback_type_new_user(callback_query: types.CallbackQuery, state: FSMContext):
+    
+        await bot.answer_callback_query(callback_query.id)
+        
+        user_id = callback_query.from_user.id
         user_name = callback_query.from_user.first_name
         
         await bot.send_message(
@@ -207,7 +231,38 @@ async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger:
             "Для регистрации в программе лояльности необходимо передать и потвердить номер телефона. Выберите удобный способ",
             reply_markup=create_keyboard_for_ask_phone()
         )                
-        logger.info(f"Начало регистрации для пользователя {user_id} ({user_name})")
+        logger.info(f"Начало регистрации для пользователя {user_id} ({user_name})")    
+
+    @dispatcher.callback_query(lambda call: call.data == 'type_start_welcome_prize')        
+    async def process_callback_type_new_user(callback_query: types.CallbackQuery):
+    
+        await bot.answer_callback_query(callback_query.id)
+               
+        user_id = callback_query.from_user.id
+        user_name = callback_query.from_user.first_name
+        
+        try:        
+            chat_member = await bot.get_chat_member(chat_id="-100555", user_id=user_id)        
+        
+            if chat_member.status in ["member", "administrator", "creator"]:
+                logger.info(f"Пользователь {user_id} ({user_name}) уже подписан на канал.")                                       
+                photo_path = 'lava_prize.jpg'
+                await bot.answer_photo(
+                photo=types.FSInputFile(path=photo_path), 
+                parse_mode="HTML"
+                )
+
+        except TelegramNotFound:    
+        
+            logger.info(f"Пользователь {user_id} ({user_name}) не подписан на канал. Запускаем процесс подписки.")      
+
+            await bot.send_message(
+                user_id,                
+                "Подпишись на наш Telegram-канал, чтобы получить доступ к подарку.",
+                reply_markup=create_keyboard_go_sushi_master_chanel()
+            )
+        logger.info(f"Пользователь зашел в процедуру получения стартового подарка {user_id} ({user_name})")            
+        
 
     @dispatcher.callback_query(lambda call: call.data == 'type_send_phone_manual')
     async def process_callback_type_cancel(callback_query: types.CallbackQuery, state: FSMContext):        
@@ -286,8 +341,7 @@ async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger:
         )
         
         await state.clear()
-        logger.info(f"Регистрация отменена пользователем {user_id} ({user_name})")   
+        logger.info(f"Регистрация отменена пользователем {user_id} ({user_name})")      
 
-        
-
+    
    

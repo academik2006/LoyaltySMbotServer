@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from keyboards import *
 from db_utils import *
 from main_keyboard_click import *
-from messages import ADRESS_TEXT, LOYATLY_TEXT, WELCOME_TEXT
+from messages import ADRESS_TEXT, LOYATLY_TEXT, WELCOME_TEXT, WELCOME_TEXT_FOR_PROMO
 from registration_router import *
 from aiogram.fsm.storage.memory import MemoryStorage
 from registration_router import registration_router
@@ -147,7 +147,8 @@ async def add_user_on_start(message):
 
     if not data:
         logger.info(f"Новый пользователь: {user_id} ({user_name})")        
-        welcome_text = WELCOME_TEXT.format(username=user_name)        
+        #welcome_text = WELCOME_TEXT.format(username=user_name)        
+        welcome_text = WELCOME_TEXT_FOR_PROMO.format(username=user_name)        
         photo_path = 'welcome_pic.jpg'
         await message.answer_photo(
             photo=types.FSInputFile(path=photo_path), 

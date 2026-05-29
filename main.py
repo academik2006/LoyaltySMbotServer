@@ -175,38 +175,3 @@ if __name__ == "__main__":
     asyncio.run(main())        
         
 
-# async def handle_webhook(request):
-#     update = types.Update(**await request.json())
-#     await dispatcher.process_update(update)
-#     return web.Response()        
-
-# async def on_startup(_):
-#     await bot.set_webhook(WEBHOOK_URL + WEBHOOK_PATH)
-#     logger.info(f"Вебхук установлен: {WEBHOOK_URL + WEBHOOK_PATH}")
-
-# async def on_shutdown(_):
-#     await bot.delete_webhook()
-#     logger.info("Вебхук удален")        
-
-# async def main():
-#     await create_db()
-#     await include_create_new_user_func(dispatcher, bot, logger)
-
-#     app = web.Application()
-#     app.router.add_post(WEBHOOK_PATH, handle_webhook)
-#     app.on_startup.append(on_startup)
-#     app.on_shutdown.append(on_shutdown)
-
-#     # Запуск через AppRunner (рекомендуется для async main)
-#     runner = web.AppRunner(app)
-#     await runner.setup()
-#     site = web.TCPSite(runner, host=WEBAPP_HOST, port=WEBAPP_PORT)
-#     await site.start()
-
-#     logger.info(f"Бот запущен с вебхуками на {WEBAPP_HOST}:{WEBAPP_PORT}")
-    
-#     # Чтобы приложение не завершилось
-#     await asyncio.Event().wait() 
-
-# if __name__ == "__main__":
-#     asyncio.run(main())

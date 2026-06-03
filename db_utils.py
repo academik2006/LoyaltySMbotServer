@@ -13,6 +13,7 @@ async def create_db():
             birthday TEXT,
             bonus BIGINT DEFAULT 0,
             notification BOOLEAN DEFAULT FALSE,
+            subscription BOOLEAN,      
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     ''')
@@ -59,11 +60,25 @@ def get_idloyaty_by_user_id(user_id):
         return result[0][0], None  # Возвращаем значение idloyaty
     return None, None  # Пользователь не найден
 
-def add_user_to_database(user_id, username,phone,idloyaty,email,birthday):
+def add_user_to_database(user_id, username,phone,idloyaty,email,birthday,subscription):
         
     # Формулируем запрос с использованием плейсхолдеров
-    query = "INSERT INTO users (user_id, username, phone, idloyaty,email, birthday) VALUES (?, ?, ?,?, ?, ?)"        
-    _, error = execute_query(query, (user_id, username, phone, idloyaty,email, birthday))
+    query = "INSERT INTO users (user_id, username, phone, idloyaty,email, birthday, subscription) VALUES (?,?,?,?,?,?,?)"        
+    _, error = execute_query(query, (user_id, username, phone, idloyaty,email, birthday, subscription))
+    return error  # Возвращаем ошибку (None, если всё хорошо)
+
+def update_user_subscription(user_id, subscription):
+    """
+    Обновляет статус подписки (поле 'subscription') для пользователя с указанным user_id.
+
+    :param user_id: ID пользователя в Telegram.
+    :param subscription: Новое значение подписки (True или False).
+    :return: Возвращает ошибку, если она возникла, или None в случае успеха.
+    """    
+    query = "UPDATE users SET subscription = ? WHERE user_id = ?"    
+    
+    _, error = execute_query(query, (subscription, user_id))
+    
     return error  # Возвращаем ошибку (None, если всё хорошо)
 
 def get_total_users_count():

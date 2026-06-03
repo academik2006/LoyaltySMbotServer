@@ -1,17 +1,12 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton, ReplyKeyboardMarkup
 
-#from registration_router import CHANNEL_USERNAME
-
-
 def create_keyboard_for_new_user():
 
-    button1 = InlineKeyboardButton(text="Условия программы лояльности", callback_data="type_about_loyalty")
-    button2 = InlineKeyboardButton(text="Зарегистрироваться", callback_data="type_new_user")
+    button = InlineKeyboardButton(text="Зарегистрироваться", callback_data="type_new_user")
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [button1],
-            [button2]
+            [button]            
         ]
     )    
     return keyboard
@@ -22,7 +17,7 @@ def create_replay_keyboard_for_user_after_registration():
         [KeyboardButton(text="Адреса 🏠"), KeyboardButton(text="Заказать доставку 🚗")],        
         [KeyboardButton(text="Условия программы лояльности ✅")],
         #[KeyboardButton(text="Персональные предложения 👑")],
-        [KeyboardButton(text="Задать вопрос 💬")], 
+        [KeyboardButton(text="Задать вопрос 💬")],         
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
     return reply_markup
@@ -143,12 +138,12 @@ def create_keyboard_start_welcome_prize():
 
 def create_keyboard_go_sushi_master_chanel():
      
-    #button1 = InlineKeyboardButton(text="Подписаться на канал Суши Мастер", url=f"https://t.me/{CHANNEL_USERNAME}")    
-    button2 = InlineKeyboardButton(text="Проверить подписку", callback_data="type_start_welcome_prize")    
+    button1 = InlineKeyboardButton(text="Перейти на канал Суши Мастер", url="https://t.me/sushimaster_rus")    
+    button2 = InlineKeyboardButton(text="Проверить подписку снова", callback_data="type_start_welcome_prize")    
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            #[button1]
+            [button1],
             [button2]            
         ]
     )    

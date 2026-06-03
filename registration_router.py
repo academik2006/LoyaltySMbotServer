@@ -24,7 +24,7 @@ class UserInfo(StatesGroup):
 
 registration_router = Router(name="registration_router")
 
-#CHANNEL_USERNAME = "-1001265323457"
+SUSHI_MASTER_CHANNEL_ID = "-1001265323457"
 
 @registration_router.message(F.content_type == types.ContentType.CONTACT)
 async def process_phone_contact(message: types.Message, state: FSMContext):
@@ -54,7 +54,7 @@ async def process_phone_contact(message: types.Message, state: FSMContext):
     #await state.set_state(UserInfo.email)
 
     await message.answer(
-        f"✅ Номер {phone_number} успешно загружен из вашего профиля. Необходимо пройти процедуру подтверждения номера номера",
+        f"✅ Номер {phone_number} успешно загружен из вашего профиля. Необходимо пройти процедуру подтверждения номера",
         reply_markup=create_keyboard_for_ask_sms()
     )
 
@@ -104,10 +104,12 @@ async def process_send_validate_sms_text(message: types.Message, state: FSMConte
         logger.info(f"Отправили SMS для потверждения номера для {phone}, результат успешно, сохранен idloyaty {idloyaty}") 
         await state.update_data(idloyaty=idloyaty)        
         await message.answer(            
-            "✅ Код подтверждения принят. Напишите ваш e-mail",
+            #"✅ Код подтверждения принят. Напишите ваш e-mail",
+            "✅ Код подтверждения принят. Укажите дату Вашего рождения в формате ДД.ММ.ГГГГ (например, 27.01.1984)",
             reply_markup=create_keyboard_for_cancel()
         )
-        await state.set_state(UserInfo.email)        
+        #await state.set_state(UserInfo.email)        
+        await state.set_state(UserInfo.birthday)
     else:
         # Если код НЕ 200, показываем ошибку и предлагаем повторить или отменить
         error_code = api_result.get("status", "неизвестный")
@@ -171,23 +173,34 @@ async def add_new_user_to_db(message: types.Message, state: FSMContext):
     
     phone = data.get('phone', '')
     idloyaty = data.get('idloyaty', '')
-    email = data.get('email', '')
+    email = data.get('email', 'no data from user')
     birthday = data.get('birthday', '')
+    subscription = await check_user_subscription(message.bot,user_id,user_name)
     
     try:
-        error = add_user_to_database(user_id, user_name, phone, idloyaty, email, birthday)
+        error = add_user_to_database(user_id, user_name, phone, idloyaty, email, birthday, subscription)
         if error:
             raise ValueError(error)
-        
-        await message.answer(
-            WELCOME_PRIZE_TEXT,
-            #reply_markup=create_keyboard_start_welcome_prize()
-        )
-            
-        await message.answer(
+                
+        if (subscription):
+            photo_path = 'lava_prize.jpg'
+            await message.bot.send_photo (
+                chat_id=user_id,
+                photo=types.FSInputFile(path=photo_path), 
+                caption=LAVA_PRIZE,
+                parse_mode="HTML",
+                reply_markup=create_replay_keyboard_for_user_after_registration())       
+        else:
+            await message.answer(
             "🎉 Поздравляю! Вы успешно зарегистрированы!",
             reply_markup=create_replay_keyboard_for_user_after_registration()
-        )
+            )
+
+            await message.answer(
+            WELCOME_PRIZE_TEXT,
+            reply_markup=create_keyboard_go_sushi_master_chanel()
+            )
+
         logger.info(f"Пользователь {user_name} успешно зарегистрирован.")
         
     except ValueError as e:
@@ -198,7 +211,15 @@ async def add_new_user_to_db(message: types.Message, state: FSMContext):
         # Сбрасываем состояние FSM в любом случае (успех/ошибка)
         await state.clear()
 
-
+async def check_user_subscription (bot, user_id, user_name):
+    chat_member = await bot.get_chat_member(chat_id=SUSHI_MASTER_CHANNEL_ID, user_id=user_id)        
+        
+    if chat_member.status in ["member", "administrator", "creator"]:
+        logger.info(f"Пользователь {user_id} ({user_name}) уже подписан на канал.")                                       
+        return True
+    else:
+        return False
+    
 async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger: logging.Logger): 
     
     
@@ -240,29 +261,35 @@ async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger:
                
         user_id = callback_query.from_user.id
         user_name = callback_query.from_user.first_name
-        
-        try:        
-            chat_member = await bot.get_chat_member(chat_id="-100555", user_id=user_id)        
-        
-            if chat_member.status in ["member", "administrator", "creator"]:
-                logger.info(f"Пользователь {user_id} ({user_name}) уже подписан на канал.")                                       
-                photo_path = 'lava_prize.jpg'
-                await bot.answer_photo(
+
+        subscription = await check_user_subscription(bot,user_id,user_name)
+
+        if (subscription):
+            photo_path = 'lava_prize.jpg'
+            await bot.send_photo (
+                chat_id=user_id,
                 photo=types.FSInputFile(path=photo_path), 
-                parse_mode="HTML"
-                )
-
-        except TelegramNotFound:    
-        
-            logger.info(f"Пользователь {user_id} ({user_name}) не подписан на канал. Запускаем процесс подписки.")      
-
+                caption=LAVA_PRIZE,
+                parse_mode="HTML",
+                reply_markup=create_replay_keyboard_for_user_after_registration())       
+        else:
             await bot.send_message(
                 user_id,                
-                "Подпишись на наш Telegram-канал, чтобы получить доступ к подарку.",
+                "Вы не подписаны на канал. Пожалуйста, подпишитесь на наш Telegram-канал, чтобы получить доступ к подарку.",
                 reply_markup=create_keyboard_go_sushi_master_chanel()
             )
-        logger.info(f"Пользователь зашел в процедуру получения стартового подарка {user_id} ({user_name})")            
+            logger.info(f"Пользователь нажал на кнопку проверки подписки и получил False {user_id} ({user_name})")  
+
+        await update_user_subscription_func (user_id,subscription)             
         
+
+    async def update_user_subscription_func(user_id,subscription):
+        try:
+            error = update_user_subscription(user_id, subscription)
+            if error:
+                raise ValueError(error)                                                    
+        except ValueError as e:            
+            logger.error(f"Ошибка при попытке обновления статуса подписки к базе данных {user_id}: {e}")              
 
     @dispatcher.callback_query(lambda call: call.data == 'type_send_phone_manual')
     async def process_callback_type_cancel(callback_query: types.CallbackQuery, state: FSMContext):        
@@ -284,15 +311,10 @@ async def include_create_new_user_func(dispatcher: Dispatcher, bot: Bot, logger:
         user_name = callback_query.from_user.first_name
         await bot.send_message(
             user_id,
-            "Пожалуйста, нажмите кнопку \"Отправить мой номер\", чтобы передать ваш номер автоматически",
-            reply_markup=create_contact_keyboard()
-        )   
-
-        await bot.send_message(
-            user_id,
-            "Если передать номер не удалось (не задан в профиле Telegram), нажмите кнопку \"Отмена\"",
-            reply_markup=create_keyboard_for_cancel()
-        )   
+            "Пожалуйста, нажмите кнопку <b>\"Отправить мой номер\"</b>, чтобы передать ваш номер автоматически.\n Если передать номер не удалось (не задан в профиле Telegram), нажмите кнопку <b>\"Отмена\"</b>",
+            reply_markup=create_contact_keyboard(),
+            parse_mode="HTML"
+        )           
                 
         logger.info(f"Пользователь выбрать передать контакт из Телеграма {user_id} ({user_name})")          
 

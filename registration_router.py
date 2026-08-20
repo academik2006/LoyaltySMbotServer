@@ -101,7 +101,7 @@ async def process_send_validate_sms_text(message: types.Message, state: FSMConte
     if api_result.get("success"):        
         # Если код 200, идем дальше (запрашиваем полученный код)
         idloyaty=api_result["data"]["id"]
-        logger.info(f"Отправили SMS для потверждения номера для {phone}, результат успешно, сохранен idloyaty {idloyaty}") 
+        logger.info(f"Отправили SMS для потверждения номера для {phone}, результат успешно") 
         await state.update_data(idloyaty=idloyaty)        
         await message.answer(            
             #"✅ Код подтверждения принят. Напишите ваш e-mail",

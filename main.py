@@ -5,6 +5,7 @@ from aiogram import types
 from aiogram.types import InputFile, Message
 from aiogram.filters.command import *
 from dotenv import load_dotenv
+from birthday import start_scheduler_birthday
 from keyboards import *
 from db_utils import *
 from main_keyboard_click import *
@@ -26,11 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-#TOKEN = API_TOKEN
-#WEBHOOK_URL = "https://dc33d5df-e9e9-4153-9505-b4ace0946590.tunnel4.com"
-#WEBHOOK_PATH = "/webhook"
-#WEBAPP_HOST = "0.0.0.0"
-#WEBAPP_PORT = 8080
+
 
 storage = MemoryStorage()
 bot = Bot(token=os.getenv("API_TOKEN"))
@@ -38,6 +35,9 @@ dispatcher = Dispatcher(storage=storage)
 main_router = Router()
 dispatcher.include_router(main_router)
 dispatcher.include_router(registration_router)
+
+class AdminStates(StatesGroup):
+    waiting_for_phone = State()
 
 
 @main_router.message(F.text.in_(["Бонусный баланс 🎁", "История бонусов 📌", "Адреса 🏠",
@@ -63,8 +63,7 @@ async def handle_main_keyboard_button_click(message: Message):
                 case "Персональные предложения 👑":
                     await message.answer("Специальные предложения для вас...")
 
-@main_router.message(F.text.in_(["Рассылки 📢", "Статистика базы данных 📊", "Запрос данных пользователя 🔎",
-                             "Скрыть панель администрирования ❌"]))
+@main_router.message(F.text.in_(["Рассылки 📢", "Статистика базы данных 📊", "Скрыть панель администрирования ❌"]))
 async def handle_admin_keyboard_button_click(message: Message):    
         user_id = message.from_user.id    
         match message.text:
@@ -77,6 +76,52 @@ async def handle_admin_keyboard_button_click(message: Message):
                 case "Скрыть панель администрирования ❌":
                     await add_user_on_start(message)                  
                 
+@main_router.message(F.text == "Запрос данных пользователя 🔎")
+async def handle_user_search_request(message: Message, state: FSMContext):
+
+    admin_ids_str = os.getenv("ADMIN_IDS")
+    
+    if admin_ids_str:
+        ADMIN_IDS = [int(id_str) for id_str in admin_ids_str.split(',')]
+    else:
+        ADMIN_IDS = [] 
+    
+    if message.from_user.id not in ADMIN_IDS:
+        await message.answer("❌ У вас нет доступа к этой функции.")
+        return
+
+    await message.answer("Введите номер пользователя в формате +79139084947")    
+    await state.set_state(AdminStates.waiting_for_phone)
+
+# Регулярное выражение для проверки формата российского номера
+PHONE_REGEX = r"^\+7\d{10}$"
+
+@main_router.message(AdminStates.waiting_for_phone, F.text.regexp(PHONE_REGEX))
+async def process_phone_number(message: Message, state: FSMContext):
+    phone = message.text.strip()
+    
+    try:  
+        data, error = get_user_by_phone (phone) 
+
+        if error:
+            raise ValueError(error)            
+        elif data is None:
+            await message.answer("❌ Пользователь с таким номером не найден.")
+        else:    
+            await message.answer(f"Данные пользователя {data}")             
+                    
+    except ValueError as e:
+
+        await message.answer(f"⚠️ Произошла ошибка при запросе к базе данных: {e}")
+        logger.error(f"Ошибка при запросе статистики: {e}")
+
+    await state.clear()          
+
+@main_router.message(AdminStates.waiting_for_phone)
+async def invalid_phone_format(message: Message):
+    await message.answer(
+        "⚠️ Неверный формат. Введите номер в виде +79139084947.\n"        
+    )    
 
 @dispatcher.message(Command("yaposhka"))
 async def show_stats(message: Message):
@@ -168,8 +213,9 @@ async def main():
     await include_create_new_user_func (dispatcher, bot, logger)    
     await create_backup_dir()
     await start_scheduler_backup(bot)
+    await start_scheduler_birthday(bot)
     await dispatcher.start_polling(bot) 
-    logger.info("Бот запущен!")       
+    logger.info("Бот запущен!")        
 
 
 if __name__ == "__main__":

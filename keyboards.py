@@ -1,4 +1,8 @@
+import os
+
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton, ReplyKeyboardMarkup
+
+company_site = os.getenv("COMPANY_SITE")
 
 def create_keyboard_for_new_user():
 
@@ -15,9 +19,7 @@ def create_replay_keyboard_for_user_after_registration():
     buttons = [
         [KeyboardButton(text="Бонусный баланс 🎁"), KeyboardButton(text="История бонусов 📌")],
         [KeyboardButton(text="Адреса 🏠"), KeyboardButton(text="Заказать доставку 🚗")],        
-        [KeyboardButton(text="Условия программы лояльности ✅")],
-        #[KeyboardButton(text="Персональные предложения 👑")],
-        [KeyboardButton(text="Задать вопрос 💬")],         
+        [KeyboardButton(text="Условия программы лояльности ✅")]       
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
     return reply_markup
@@ -59,7 +61,7 @@ def create_keyboard_for_ask_sms():
     return keyboard
 
 def create_keyboard_make_order():
-    button = InlineKeyboardButton(text="Перейти на сайт sushi-master.ru", url="https://sushi-master.ru")
+    button = InlineKeyboardButton(text="Перейти на сайт", url=company_site)
     
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -68,15 +70,6 @@ def create_keyboard_make_order():
     )    
     return keyboard
 
-def create_keyboard_give_question():
-    button = InlineKeyboardButton(text="Задать вопрос 💬", url="https://t.me/SushiMasterRU_bot")
-    
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [button],            
-        ]
-    )    
-    return keyboard
 
 def create_contact_keyboard():
     """
